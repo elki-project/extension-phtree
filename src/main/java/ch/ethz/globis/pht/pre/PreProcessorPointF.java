@@ -23,22 +23,19 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-import ch.ethz.globis.pht.util.BitTools;
-
-public class EmptyPP implements PreProcessorPoint {
-
-  @Override
-  public void pre(double[] raw, long[] pre) {
-    for (int d=0; d<raw.length; d++) {
-      pre[d] = BitTools.toSortableLong(raw[d]);
-    }
-  }
-
-  @Override
-  public void post(long[] pre, double[] post) {
-    for (int d=0; d<pre.length; d++) {
-      post[d] = BitTools.toDouble(pre[d]);
-    }
-  }
-
+public interface PreProcessorPointF {
+	
+	/**
+	 * 
+	 * @param raw raw data (input)
+	 * @param pre pre-processed data (output, must be non-null and same size as input array)
+	 */
+	public void pre(double[] raw, long[] pre);
+	
+	
+	/**
+	 * @param pre pre-processed data (input)
+	 * @param post post-processed data (output, must be non-null and same size as input array)
+	 */
+	public void post(long[] pre, double[] post);
 }
