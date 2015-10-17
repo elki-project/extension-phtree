@@ -54,6 +54,7 @@ public class PhDistanceL implements PhDistance {
    * 
    * @see PhDistance#dist(long[], long[])
    */
+  @Override
   public double distEst(long[] v1, long[] v2) {
     double d = 0;
     for (int i = 0; i < v1.length; i++) {
