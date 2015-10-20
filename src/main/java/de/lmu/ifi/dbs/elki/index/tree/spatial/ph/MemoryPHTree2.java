@@ -72,7 +72,7 @@ import de.lmu.ifi.dbs.elki.utilities.optionhandling.AbstractParameterizer;
  * @param <O> Vector type
  */
 @Reference(authors = "T. Zaeschke, C. Zimmerli, M.C. Norrie", title = "The PH-Tree -- A Space-Efficient Storage Structure and Multi-Dimensional Index", booktitle = "Proc. Intl. Conf. on Management of Data (SIGMOD'14), 2014", url = "http://dx.doi.org/10.1145/361002.361007")
-public class MemoryPHTree<O extends NumberVector> extends AbstractIndex<O> 
+public class MemoryPHTree2<O extends NumberVector> extends AbstractIndex<O> 
     implements DynamicIndex,  KNNIndex<O>, RangeIndex<O> {
   /**
    * Class logger
@@ -109,7 +109,7 @@ public class MemoryPHTree<O extends NumberVector> extends AbstractIndex<O>
    * 
    * @param relation Relation to index
    */
-  public MemoryPHTree(Relation<O> relation) {
+  public MemoryPHTree2(Relation<O> relation) {
     super(relation);
     if(LOG.isStatistics()) {
       String prefix = this.getClass().getName();

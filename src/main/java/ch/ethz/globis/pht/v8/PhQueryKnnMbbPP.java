@@ -43,6 +43,34 @@ import ch.ethz.globis.pht.v8.PhTree8.NodeEntry;
 /**
  * kNN query implementation that uses preprocessors and distance functions.
  * 
+ * The algorithm works as follows:
+ * 
+ * First we drill down in the tree to find an entry that is 'close' to
+ * desired center of the kNN query. A 'close' entry is one that is in the same node
+ * where the center would be, or in one of its sub-nodes. Note that we do not use
+ * the center-point itself in case it exists in the tree. The result of the first step is 
+ * a guess at the initial search distance (this would be 0 if we used the center itself). 
+ * 
+ * We then use a combination of rectangle query (center +/- initDistance) and distance-query. 
+ * The query traverses only nodes and values that lie in the query rectangle and that satisfy the
+ * distance requirement (circular distance when using euclidean space).
+ * 
+ * While iterating through the query result, we regularly sort the returned entries 
+ * to see which distance would suffice to return 'k' result. If the new distance is smaller,
+ * we adjust the query rectangle and the distance function before continuing the
+ * query. As a result, when the query returns no more entries, we are guaranteed to
+ * have all closest neighbours.
+ * 
+ * The only thing that can go wrong is that we may get less than 'k' neighbours if the
+ * initial distance was too small. In that case we multiply the initial distance by 10
+ * and run the algorithm again. Not that multiplying the distance by 10 means a 10^k fold
+ * increase in the search volume. 
+ *   
+ *   
+ * WARNING:
+ * The query rectangle is calculated using the PhDistance.toMBB() method.
+ * The implementation of this method may not work with non-euclidean spaces! 
+ * 
  * @param <T> 
  */
 public class PhQueryKnnMbbPP<T> implements PhQueryKNN<T> {
