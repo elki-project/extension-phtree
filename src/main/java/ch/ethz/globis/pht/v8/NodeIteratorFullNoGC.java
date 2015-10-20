@@ -120,9 +120,9 @@ public class NodeIteratorFullNoGC<T> {
     if (isPostNI) {
       postEntryLen = -1; //not used
       if (niIterator == null) {
-          niIterator = new CritBit64.CBIterator<>();
-        }
-        niIterator.reset(node.ind());
+        niIterator = new CritBit64.CBIterator<>();
+      }
+      niIterator.reset(node.ind());
     } else {
       currentOffsetPostKey = node.getBitPos_PostIndex(DIM);
       // -set key offset to position before first element
