@@ -55,24 +55,23 @@ import de.lmu.ifi.dbs.elki.index.IndexFactory;
 import de.lmu.ifi.dbs.elki.index.KNNIndex;
 import de.lmu.ifi.dbs.elki.index.RangeIndex;
 import de.lmu.ifi.dbs.elki.logging.Logging;
-import de.lmu.ifi.dbs.elki.logging.statistics.Counter;
 import de.lmu.ifi.dbs.elki.logging.statistics.LongStatistic;
 import de.lmu.ifi.dbs.elki.utilities.Alias;
 import de.lmu.ifi.dbs.elki.utilities.documentation.Reference;
 import de.lmu.ifi.dbs.elki.utilities.optionhandling.AbstractParameterizer;
 
 /**
- * Implementation of an in-memory PH-tree. 
- * 
+ * Implementation of an in-memory PH-tree.
+ *
  * @author Tilmann Zaeschke, Erich Schubert
- * 
+ *
  * @apiviz.has PHTreeKNNQuery
  * @apiviz.has PHTreeRangeQuery
- * 
+ *
  * @param <O> Vector type
  */
 @Reference(authors = "T. Zaeschke, C. Zimmerli, M.C. Norrie", title = "The PH-Tree -- A Space-Efficient Storage Structure and Multi-Dimensional Index", booktitle = "Proc. Intl. Conf. on Management of Data (SIGMOD'14), 2014", url = "http://dx.doi.org/10.1145/361002.361007")
-public class MemoryPHTree<O extends NumberVector> extends AbstractIndex<O> 
+public class MemoryPHTree<O extends NumberVector> extends AbstractIndex<O>
     implements DynamicIndex,  KNNIndex<O>, RangeIndex<O> {
   /**
    * Class logger
@@ -95,31 +94,12 @@ public class MemoryPHTree<O extends NumberVector> extends AbstractIndex<O>
   private int dims = -1;
 
   /**
-   * Counter for comparisons.
-   */
-  private final Counter objaccess;
-
-  /**
-   * Counter for distance computations.
-   */
-  private final Counter distcalc;
-
-  /**
    * Constructor.
-   * 
+   *
    * @param relation Relation to index
    */
   public MemoryPHTree(Relation<O> relation) {
     super(relation);
-    if(LOG.isStatistics()) {
-      String prefix = this.getClass().getName();
-      this.objaccess = LOG.newCounter(prefix + ".objaccess");
-      this.distcalc = LOG.newCounter(prefix + ".distancecalcs");
-    }
-    else {
-      this.objaccess = null;
-      this.distcalc = null;
-    }
     dims = RelationUtil.dimensionality(relation);
     //TODO
     //standard preprocessor
@@ -156,32 +136,8 @@ public class MemoryPHTree<O extends NumberVector> extends AbstractIndex<O>
 
   @Override
   public void logStatistics() {
-    LOG.statistics(new LongStatistic(this.getClass().getName() + ".distance-computations", 
+    LOG.statistics(new LongStatistic(this.getClass().getName() + ".distance-computations",
         distComputations));
-    if(objaccess != null) {
-      LOG.statistics(objaccess);
-    }
-    if(distcalc != null) {
-      LOG.statistics(distcalc);
-    }
-  }
-
-  /**
-   * Count a single object access.
-   */
-  protected void countObjectAccess() {
-    if(objaccess != null) {
-      objaccess.increment();
-    }
-  }
-
-  /**
-   * Count a distance computation.
-   */
-  protected void countDistanceComputation() {
-    if(distcalc != null) {
-      distcalc.increment();
-    }
   }
 
   @Override
@@ -218,7 +174,7 @@ public class MemoryPHTree<O extends NumberVector> extends AbstractIndex<O>
 
   /**
    * kNN query for the ph-tree.
-   * 
+   *
    * @author Tilmann Zaeschke
    */
   public class PHTreeKNNQuery extends AbstractDistanceKNNQuery<O> {
@@ -226,17 +182,17 @@ public class MemoryPHTree<O extends NumberVector> extends AbstractIndex<O>
      * Norm to use.
      */
     private final Norm<O> norm;
-    
+
     /**
      * Norm wrapper.
      */
     private final PhNorm<O> dist;
-    
+
     /**
      * Query instance.
      */
     private final PhQueryKNNF<DBID> query;
-    
+
     /**
      * Center point.
      */
@@ -244,7 +200,7 @@ public class MemoryPHTree<O extends NumberVector> extends AbstractIndex<O>
 
     /**
      * Constructor.
-     * 
+     *
      * @param distanceQuery Distance query
      * @param norm Norm to use
      */
@@ -260,7 +216,7 @@ public class MemoryPHTree<O extends NumberVector> extends AbstractIndex<O>
     @Override
     public KNNList getKNNForObject(O obj, int k) {
       final KNNHeap knns = DBIDUtil.newHeap(k);
-      
+
       oToDouble(obj, center);
       query.reset(k, dist, null, center);
       while (query.hasNext()) {
@@ -269,9 +225,9 @@ public class MemoryPHTree<O extends NumberVector> extends AbstractIndex<O>
         double distance = norm.distance(obj, o2);
         knns.insert(distance, id);
       }
-      
+
       distComputations += dist.getAndResetDistanceCounter();
-      
+
       return knns.toKNNList();
     }
   }
@@ -284,7 +240,7 @@ public class MemoryPHTree<O extends NumberVector> extends AbstractIndex<O>
      * Norm to use.
      */
 	    private final Norm<? super O> norm;
-	    
+
 	    /**
 	     * Norm wrapper.
 	     */
@@ -299,13 +255,13 @@ public class MemoryPHTree<O extends NumberVector> extends AbstractIndex<O>
 	     * The query rectangle.
 	     */
 	    private final double[] mid;
-    
+
     /**
      * Constructor.
-     * 
+     *
      * Returns all entries within a given distance of a given center.
      * In euclidean space this is a spherical query.
-     * 
+     *
      * @param distanceQuery Distance query
      * @param norm Norm to use
      */
@@ -323,13 +279,13 @@ public class MemoryPHTree<O extends NumberVector> extends AbstractIndex<O>
 
         long[] longCenter = new long[dims];
         tree.getPreprocessor().pre(mid, longCenter);
-        
+
         if (query == null) {
           query = tree.rangeQuery(range, dist, mid);
         } else {
           query.reset(range, mid);
       }
-      
+
       while (query.hasNext()) {
         PhEntryF<DBID> e = query.nextEntry();
         DBID id = e.getValue();
@@ -343,12 +299,12 @@ public class MemoryPHTree<O extends NumberVector> extends AbstractIndex<O>
 
   /**
    * Factory class
-   * 
+   *
    * @author Tilmann Zaeschke
-   * 
+   *
    * @apiviz.stereotype factory
    * @apiviz.has MinimalisticMemoryPHTree
-   * 
+   *
    * @param <O> Vector type
    */
   @Alias({ "miniph", "ph" })
@@ -369,7 +325,7 @@ public class MemoryPHTree<O extends NumberVector> extends AbstractIndex<O>
     public TypeInformation getInputTypeRestriction() {
       return TypeUtil.NUMBER_VECTOR_FIELD;
     }
-    
+
     public static class Parametrizer extends AbstractParameterizer {
       @Override
       protected MemoryPHTree.Factory<NumberVector> makeInstance() {
@@ -378,7 +334,7 @@ public class MemoryPHTree<O extends NumberVector> extends AbstractIndex<O>
     }
   }
 
-  
+
   @Override
   public boolean delete(DBIDRef id) {
     O o = relation.get(id);
@@ -406,7 +362,7 @@ public class MemoryPHTree<O extends NumberVector> extends AbstractIndex<O>
       insert(iter);
     }
   }
-  
+
   private double[] oToDouble(O o, double[] v) {
     for (int k = 0; k < dims; k++) {
       v[k] = o.doubleValue(k);
