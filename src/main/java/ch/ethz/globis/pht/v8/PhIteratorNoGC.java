@@ -62,7 +62,7 @@ public final class PhIteratorNoGC<T> implements PhQuery<T> {
         return false;
       }
 
-      if (checker != null && node.getSubCount()+node.getPostCount()>2) {
+			if (checker != null) {
         long mask = (-1L) << (node.getPostLen() + 1);
         for (int i = 0; i < valTemplate.length; i++) {
           valTemplate[i] &= mask;  //TODO do somewhere else??
@@ -104,7 +104,7 @@ public final class PhIteratorNoGC<T> implements PhQuery<T> {
   boolean isFinished = false;
 
   public PhIteratorNoGC(PhTree8<T> pht, PhFilter checker) {
-    this.DIM = pht.getDIM();
+		this.DIM = pht.getDim();
     this.checker = checker;
     this.stack = new PhIteratorStack();
     this.valTemplate = new long[DIM];

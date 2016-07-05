@@ -30,13 +30,11 @@ import org.junit.BeforeClass;
 
 public class TestSuper {
 
-	@SuppressWarnings("deprecation")
   @BeforeClass
 	public static void setUpClass() {
 		TestUtil.beforeClass();
 	}
 
-	@SuppressWarnings("deprecation")
   @AfterClass
 	public static void tearDownClass() {
 		TestUtil.afterClass();
@@ -47,7 +45,6 @@ public class TestSuper {
 		TestUtil.beforeTest();
 	}
 
-	@SuppressWarnings("deprecation")
   @After
 	public void tearDown() {
 		TestUtil.afterTest();

@@ -29,10 +29,12 @@ import static ch.ethz.globis.pht.PhTreeHelper.debugCheck;
 import static ch.ethz.globis.pht.PhTreeHelper.getMaxConflictingBitsWithMask;
 import static ch.ethz.globis.pht.PhTreeHelper.posInArray;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import ch.ethz.globis.pht.PhDimFilter;
+import ch.ethz.globis.pht.PhFilter;
 import ch.ethz.globis.pht.PhDistance;
 import ch.ethz.globis.pht.PhDistanceL;
 import ch.ethz.globis.pht.PhEntry;
@@ -41,7 +43,8 @@ import ch.ethz.globis.pht.PhRangeQuery;
 import ch.ethz.globis.pht.PhTree;
 import ch.ethz.globis.pht.PhTreeConfig;
 import ch.ethz.globis.pht.PhTreeHelper;
-import ch.ethz.globis.pht.util.PhTreeQStats;
+import ch.ethz.globis.pht.util.PhMapper;
+import ch.ethz.globis.pht.util.PhTreeStats;
 import ch.ethz.globis.pht.util.StringBuilderLn;
 
 /**
@@ -156,25 +159,20 @@ public class PhTree8<T> extends PhTree<T> {
   }
 
   @Override
-  public int getNodeCount() {
-    return nNodes.get();
+	public PhTreeStats getStats() {
+		return getQuality(0, getRoot(), new PhTreeStats(DEPTH_64));
   }
 
-  @Override
-  public PhTreeQStats getQuality() {
-    return getQuality(0, getRoot(), new PhTreeQStats(DEPTH_64));
-  }
-
-  private PhTreeQStats getQuality(int currentDepth, Node<T> node, PhTreeQStats stats) {
+	private PhTreeStats getQuality(int currentDepth, Node<T> node, PhTreeStats stats) {
     stats.nNodes++;
     if (node.isPostHC()) {
-      stats.nHCP++;
+			stats.nAHC++;
     }
     if (node.isSubHC()) {
-      stats.nHCS++;
+			stats.nNtNodes++;
     }
     if (node.isPostNI()) {
-      stats.nNI++;
+			stats.nNT++;
     }
     stats.infixHist[node.getInfixLen()]++;
     stats.nodeDepthHist[currentDepth]++;
@@ -208,183 +206,12 @@ public class PhTree8<T> extends PhTree<T> {
 
 
   @Override
-  public PhTreeHelper.Stats getStats() {
-    return getStats(0, getRoot(), new PhTreeHelper.Stats());
-  }
-
-  private PhTreeHelper.Stats getStats(int currentDepth, Node<T> node, PhTreeHelper.Stats stats) {
-    final int REF = 4;//bytes for a reference
-    stats.nNodes++;
-    // this +  ref-SubNRef[] + ref-subB[] + refInd + refVal[] + infLen + infOffs
-    stats.size += align8(12 + REF + REF + REF +  REF + 1 + 1 + 1 + 1);
-
-    currentDepth += node.getInfixLen();
-    int nChildren = 0;
-    if (node.isPostNI()) {
-      nChildren += node.ind().size();
-      stats.size += (node.ind().size()-1) * 48 + 40;
-      if (node.getSubCount() == 0) {
-        stats.nLeafNodes++;
-      } else {
-        stats.nInnerNodes++;
-      }
-      for (NodeEntry<T> e: node.ind()) {
-        stats.size += 24; //e
-        if (e.node != null) {
-          getStats(currentDepth + 1, e.node, stats);
-        } else {
-          //count post-fixes
-          stats.size += 16 + e.getKey().length*8;
-        }
-      }
-    } else {
-      if (node.subNRef() != null) {
-        stats.size += 16 + align8(node.subNRef().length * REF);
-        stats.nInnerNodes++;
-        for (Node<T> sub: node.subNRef()) {
-          if (sub != null) {
-            nChildren++;
-            getStats(currentDepth + 1, sub, stats);
-          }
-        }
-        stats.nSubOnly += nChildren;
-      } else {
-        stats.nLeafNodes++;
-      }
-      nChildren += node.getPostCount();
-      //count post-fixes
-      stats.size += 16 + align8(Bits.arraySizeInByte(node.ba));
-    }
-
-
-    if (nChildren == 1 && nEntries.get() > 1) {
-      //This should not happen! Except for a root node if the tree has <2 entries.
-      System.err.println("WARNING: found lonely node..." + (node == getRoot()));
-      stats.nLonely++;
-    }
-    if (nChildren == 0) {
-      //This should not happen! Except for a root node if the tree has <2 entries.
-      System.err.println("WARNING: found ZOMBIE node..." + (node == getRoot()));
-      stats.nLonely++;
-    }
-    stats.nChildren += nChildren;
-    return stats;
-  }
-
-  @Override
-  public PhTreeHelper.Stats getStatsIdealNoNode() {
-    return getStatsIdealNoNode(0, getRoot(), new PhTreeHelper.Stats());
-  }
-
-  private PhTreeHelper.Stats getStatsIdealNoNode(int currentDepth, Node<T> node, PhTreeHelper.Stats stats) {
-    final int REF = 4;//bytes for a reference
-    stats.nNodes++;
-
-    // 16=object[] +  16=byte[] + value[]
-    stats.size += 16 + 16 + 16;
-
-    //  infixLen + isHC + + postlen 
-    stats.size += 1 + 1 + 1 + 4 * REF;
-
-    int sizeBA = 0;
-    sizeBA = node.calcArraySizeTotalBits(node.getPostCount(), DIM);
-    sizeBA = Bits.calcArraySize(sizeBA);
-    sizeBA = Bits.arraySizeInByte(sizeBA);
-    stats.size += align8(sizeBA);
-
-    currentDepth += node.getInfixLen();
-    int nChildren = 0;
-
-    if (node.isPostNI()) {
-      nChildren = node.ind().size();
-      stats.size += (nChildren-1) * 48 + 40;
-      if (node.getSubCount() == 0) {
-        stats.nLeafNodes++;
-      } else {
-        stats.nInnerNodes++;
-      }
-      for (NodeEntry<T> e: node.ind()) {
-        stats.size += 24; //e
-        if (e.node != null) {
-          getStatsIdealNoNode(currentDepth + 1, e.node, stats);
-        } else {
-          //count post-fixes
-          stats.size += 16 + e.getKey().length*8;
-        }
-      }
-    } else {
-      if (node.isSubHC()) {
-        stats.nHCS++;
-      }
-      if (node.subNRef() != null) {
-        //+ REF for the byte[]
-        stats.size += align8(node.getSubCount() * REF + REF);
-        stats.nInnerNodes++;
-        for (Node<T> sub: node.subNRef()) {
-          if (sub != null) {
-            nChildren++;
-            getStatsIdealNoNode(currentDepth + 1, sub, stats);
-          }
-        }
-        stats.nSubOnly += nChildren;
-      } else {
-        //byte[] ref
-        stats.size += align8(1 * REF);
-        stats.nLeafNodes++;
-      }
-
-      //count post-fixes
-      nChildren += node.getPostCount();
-      if (node.isPostHC()) {
-        stats.nHCP++;
-      }
-    }
-
-
-    stats.nChildren += nChildren;
-
-    //sanity checks
-    if (nChildren == 1) {
-      //This should not happen! Except for a root node if the tree has <2 entries.
-      System.err.println("WARNING: found lonely node..." + (node == getRoot()));
-      stats.nLonely++;
-    }
-    if (nChildren == 0) {
-      //This should not happen! Except for a root node if the tree has <2 entries.
-      System.err.println("WARNING: found ZOMBIE node..." + (node == getRoot()));
-      stats.nLonely++;
-    }
-    if (node.isPostHC() && node.isSubHC()) {
-      System.err.println("WARNING: Double HC found");
-    }
-    if (DIM<=31 && node.getPostCount() + node.getSubCount() > (1L<<DIM)) {
-      System.err.println("WARNING: Over-populated node found: pc=" + node.getPostCount() + 
-          "  sc=" + node.getSubCount());
-    }
-    //check space
-    int baS = node.calcArraySizeTotalBits(node.getPostCount(), DIM);
-    baS = Bits.calcArraySize(baS);
-    if (baS < node.ba.length) {
-      stats.nTooLarge++;
-      if ((node.ba.length - baS)==2) {
-        stats.nTooLarge2++;
-      } else if ((node.ba.length - baS)==4) {
-        stats.nTooLarge4++;
-      } else {
-        System.err.println("Array too large: " + node.ba.length + " - " + baS + " = " + 
-            (node.ba.length - baS));
-      }
-    }
-    return stats;
-  }
-
-  @Override
   public T put(long[] key, T value) {
     return operations.put(key, value);
   }
 
   void insertRoot(long[] key, T value) {
-    root = operations.createNode(this, 0, DEPTH_64-1, 1, DIM);
+        root = operations.createNode(this, 0, DEPTH_64-1, 1);
     //calcPostfixes(valueSet, root, 0);
     long pos = posInArray(key, root.getPostLen());
     root.addPost(pos, key, value);
@@ -524,7 +351,9 @@ public class PhTree8<T> extends PhTree<T> {
 
   @Override
   public String toString() {
-    return toStringPlain();
+		return this.getClass().getSimpleName() + 
+				" HCI-on=" + HCI_ENABLED +  
+				" DEBUG=" + PhTreeHelper.DEBUG;
   }
 
   @Override
@@ -607,16 +436,17 @@ public class PhTree8<T> extends PhTree<T> {
 
 
   @Override
-  public PhIterator<T> queryExtent() {
+	public PhExtent<T> queryExtent() {
     return new PhIteratorFullNoGC<T>(this, null).reset();
   }
 
 
 
   /**
-   * Performs a range query. The parameters are the min and max values.
-   * @param min
-   * @param max
+	 * Performs a rectangular window query. The parameters are the min and max keys which 
+	 * contain the minimum respectively the maximum keys in every dimension.
+	 * @param min Minimum values
+	 * @param max Maximum values
    * @return Result iterator.
    */
   @Override
@@ -633,6 +463,48 @@ public class PhTree8<T> extends PhTree<T> {
     return q;
   }
 
+	/**
+	 * Performs a rectangular window query. The parameters are the min and max keys which 
+	 * contain the minimum respectively the maximum keys in every dimension.
+	 * @param min Minimum values
+	 * @param max Maximum values
+	 * @return Result list.
+	 */
+	@Override
+	public List<PhEntry<T>> queryAll(long[] min, long[] max) {
+		return queryAll(min, max, Integer.MAX_VALUE, null, null);
+	}
+	
+	/**
+	 * Performs a rectangular window query. The parameters are the min and max keys which 
+	 * contain the minimum respectively the maximum keys in every dimension.
+	 * @param min Minimum values
+	 * @param max Maximum values
+	 * @return Result list.
+	 */
+	@Override
+	public <R> List<R> queryAll(long[] min, long[] max, int maxResults, 
+			PhFilter filter, PhMapper<T, R> mapper) {
+		if (min.length != DIM || max.length != DIM) {
+			throw new IllegalArgumentException("Invalid number of arguments: " + min.length +  
+					" / " + max.length + "  DIM=" + DIM);
+		}
+		
+		if (getRoot() == null) {
+			return new ArrayList<>();
+		}
+		
+//		if (mapper == null) {
+//			mapper = (PhMapper<T, R>) PhMapper.PVENTRY();
+//		}
+		
+//		ArrayList<R> list = NodeIteratorList.query(root, valTemplate, min, max, 
+//				DIM, true, maxResults, filter, mapper);
+		ArrayList<R> list = NodeIteratorListReuse.query(root, min, max, 
+				DIM, maxResults, filter, mapper);
+		return list;
+	}
+
   static final <T> boolean checkAndApplyInfix(Node<T> node, long[] valTemplate, 
       long[] rangeMin, long[] rangeMax) {
     //first check if node-prefix allows sub-node to contain any useful values
@@ -641,9 +513,11 @@ public class PhTree8<T> extends PhTree<T> {
       int postLen = node.getPostLen();
 
       //assign infix
-      int postHcInfixLen = postLen + 1 + infixLen;
-      long maskClean = postHcInfixLen==64 ? //currentDepth == 0 && DEPTH == 64 
-          0 : ((0xFFFFFFFFFFFFFFFFL<<postHcInfixLen));
+            //Shift in two steps in case they add up to 64.
+			//int postHcInfixLen = postLen + 1 + infixLen;
+  			long maskClean = (-1L) << (postLen + infixLen);
+			maskClean <<= 1;
+
       //first, clean trailing bits
       //Mask for comparing the tempVal with the ranges, except for bit that have not been
       //extracted yet.
@@ -665,34 +539,39 @@ public class PhTree8<T> extends PhTree<T> {
   }
 
   @Override
-  public int getDIM() {
+	public int getDim() {
     return DIM;
   }
 
   @Override
-  public int getDEPTH() {
+	public int getBitDepth() {
     return PhTree8.DEPTH_64;
   }
 
   /**
    * Locate nearest neighbours for a given point in space.
-   * @param nMin number of values to be returned. More values may be returned with several have
-   * 				the same distance.
+	 * @param nMin number of values to be returned. More values may or may not be returned when 
+	 * several have	the same distance.
    * @param v
    * @return Result iterator.
    */
   @Override
-  public PhQueryKNN<T> nearestNeighbour(int nMin, long... v) {
-    return new PhQueryKnnMbbPP<T>(this).reset(nMin, PhDistanceL.THIS, null, v); 
+	public PhKnnQuery<T> nearestNeighbour(int nMin, long... v) {
+		return new PhQueryKnnMbbPP<T>(this).reset(nMin, PhDistanceL.THIS, v);
   }
 
   @Override
-  public PhQueryKNN<T> nearestNeighbour(int nMin, PhDistance dist,
-      PhDimFilter dimsFilter, long... center) {
-    return new PhQueryKnnMbbPP<T>(this).reset(nMin, dist, dimsFilter, center);
+	public PhKnnQuery<T> nearestNeighbour(int nMin, PhDistance dist,
+      PhFilter dimsFilter, long... center) {
+		return new PhQueryKnnMbbPP<T>(this).reset(nMin, dist, center);
   }
 
   @Override
+	public PhRangeQuery<T> rangeQuery(double dist, long... center) {
+		return rangeQuery(dist, null, center);
+	}
+
+	@Override
   public PhRangeQuery<T> rangeQuery(double dist, PhDistance optionalDist, long...center) {
     PhFilterDistance filter = new PhFilterDistance();
     if (optionalDist == null) {

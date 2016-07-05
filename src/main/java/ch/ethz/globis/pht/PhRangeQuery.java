@@ -43,7 +43,7 @@ public class PhRangeQuery<T> implements PhIterator<T> {
 
   public PhRangeQuery(PhQuery<T> iter, PhTree<T> tree, 
       PhDistance dist, PhFilterDistance filter) {
-    this.DIM = tree.getDIM();
+    this.DIM = tree.getDim();
     this.q = iter;
     this.dist = dist;
     this.filter = filter;

@@ -1,4 +1,4 @@
-package ch.ethz.globis.pht;
+package ch.ethz.globis.pht.util;
 
 /*
 This file is part of ELKI:
@@ -23,29 +23,33 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+
 import java.io.Serializable;
 
+import ch.ethz.globis.pht.PhEntry;
+
 /**
- * A predicate class that can for example be used to filter query results before they are returned.
+ * A mapping function that maps long[] / T to a desired output format.
  *
- * This interface needs to be serializable because in the distributed version of the PhTree, it is send
- * from the client machine to the server machine.
+ * This interface needs to be serializable because in the distributed version of the PhTree, 
+ * it is send from the client machine to the server machine.
  *
  * @author ztilmann
  */
-public interface PhPredicate extends Serializable {
+public interface PhMapper<T, R> extends Serializable {
 
-	PhPredicate ACCEPT_ALL = new PhPredicate() {
-    
-    /**  */
-    private static final long serialVersionUID = 1L;
+//	static <T> PhMapper<T, PhEntry<T>> PVENTRY() {
+//		return e -> e;
+//	}
+//
+//	static <T, R> PhMapper<T, R> MAP(final PhMapperKey<R> mapper) {
+//		return e -> mapper.map(e.getKey());
+//	}
 
-    @Override
-    public boolean test(long[] point) {
-      return true;
-    }
-  };
-
-	boolean test(long[] point);
-	
+	/**
+	 * Maps a PhEntry to something else. 
+	 * @param e
+	 * @return The converted entry
+	 */
+	R map(PhEntry<T> e);
 }

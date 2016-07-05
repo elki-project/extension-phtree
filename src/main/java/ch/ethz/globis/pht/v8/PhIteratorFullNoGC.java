@@ -27,7 +27,7 @@ import java.util.NoSuchElementException;
 
 import ch.ethz.globis.pht.PhEntry;
 import ch.ethz.globis.pht.PhFilter;
-import ch.ethz.globis.pht.PhTree.PhIterator;
+import ch.ethz.globis.pht.PhTree.PhExtent;
 import ch.ethz.globis.pht.PhTreeHelper;
 
 /**
@@ -42,7 +42,7 @@ import ch.ethz.globis.pht.PhTreeHelper;
  *
  * @param <T>
  */
-public final class PhIteratorFullNoGC<T> implements PhIterator<T> {
+public final class PhIteratorFullNoGC<T> implements PhExtent<T> {
 
   private class PhIteratorStack {
     private final NodeIteratorFullNoGC<T>[] stack;
@@ -89,13 +89,14 @@ public final class PhIteratorFullNoGC<T> implements PhIterator<T> {
   boolean isFinished = false;
 
   public PhIteratorFullNoGC(PhTree8<T> pht, PhFilter checker) {
-    this.DIM = pht.getDIM();
+		this.DIM = pht.getDim();
     this.checker = checker;
     this.stack = new PhIteratorStack();
     this.valTemplate = new long[DIM];
     this.pht = pht;
   }	
 
+	@Override
   public PhIteratorFullNoGC<T> reset() {	
     this.stack.size = 0;
     this.isFinished = false;

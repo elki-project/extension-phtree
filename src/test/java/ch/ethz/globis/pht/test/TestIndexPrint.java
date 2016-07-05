@@ -56,7 +56,7 @@ public class TestIndexPrint {
 		Iterator<long[]> it = ind.queryExtent();
 		while (it.hasNext()) {
 			long[] v = it.next();
-			keys.add(Bits.toBinary(v, ind.getDEPTH()));
+			keys.add(Bits.toBinary(v, ind.getBitDepth()));
 		}
 	
 		String out = ind.toStringPlain();
@@ -71,16 +71,21 @@ public class TestIndexPrint {
 		final Random R = new Random(4);
 		
 		PhTree<long[]> ind = create(3, 32);
+		long keysA[][] = new long[N][];
 		for (int i = 0; i < N; i++) {
 			long[] v = new long[]{R.nextInt(), R.nextInt(), R.nextInt()};
 			ind.put(v, v);
+			keysA[i] = v;
+			for (int j = 0; j <= i; j++) {
+				assertTrue(ind.contains(keysA[j]));
+			}
 		}
 
 		ArrayList<String> keys = new ArrayList<>();
 		Iterator<long[]> it = ind.queryExtent();
 		while (it.hasNext()) {
 			long[] v = it.next();
-			keys.add(Bits.toBinary(v, ind.getDEPTH()));
+			keys.add(Bits.toBinary(v, ind.getBitDepth()));
 		}
 	
 		String out = ind.toStringPlain();

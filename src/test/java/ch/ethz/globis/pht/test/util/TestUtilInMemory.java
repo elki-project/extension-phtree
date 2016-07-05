@@ -33,6 +33,11 @@ public class TestUtilInMemory implements TestUtilAPI {
 	}
 
 	@Override
+	public <T> PhTree<T> newTreeV(int dim) {
+		return PhTree.create(dim);
+	}
+
+	@Override
 	public <T> void close(PhTree<T> tree) {
 		//nothing to do
 	}

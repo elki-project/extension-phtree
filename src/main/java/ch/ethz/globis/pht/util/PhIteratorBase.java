@@ -33,4 +33,6 @@ public interface PhIteratorBase<K, V, E> extends Iterator<V> {
 
 	public E nextEntry();
 
+	public E nextEntryReuse();
+
 }

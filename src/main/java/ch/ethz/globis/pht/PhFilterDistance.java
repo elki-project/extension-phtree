@@ -31,16 +31,29 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 public class PhFilterDistance implements PhFilter {
-
+  
+  /** */
+  private static final long serialVersionUID = 1L;
+  
   private long[] v;
   private PhDistance dist;
   private double maxDist;
 
+	/**
+	 * Set the parameters for this distance filter.
+	 * @param v
+	 * @param dist
+	 * @param maxDist
+	 */
   public void set(long[] v, PhDistance dist, double maxDist) {
     this.v = v;
     this.dist = dist;
     this.maxDist = maxDist;
   }
+
+	public void setMaxDist(double maxDist) {
+		this.maxDist = maxDist;
+	}
 
   @Override
   public boolean isValid(long[] key) {
@@ -61,5 +74,9 @@ public class PhFilterDistance implements PhFilter {
     }
     return dist.dist(v, buf) <= maxDist;
   }
+
+	public PhDistance getDistance() {
+		return dist;
+	}
 
 }

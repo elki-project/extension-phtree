@@ -1,4 +1,4 @@
-package ch.ethz.globis.pht;
+package ch.ethz.globis.pht.util;
 
 /*
 This file is part of ELKI:
@@ -21,58 +21,29 @@ GNU Affero General Public License for more details.
 
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
-*/
+ */
 
-public class PhTreeConfig {
+/**
+ * Type of mapper that does not use the value of the PHEntry, only the key.
+ */
+public abstract class PhMapperK<T, R> implements PhMapper<T, R> {
 
-	private int dimUser;
-	private int dimActual;
-	private boolean[] unique; 
-	
-	public PhTreeConfig(int dim) {
-		this.dimUser = dim;
-		this.dimActual = dim;
-		this.unique = new boolean[dimUser];
-	}
-	
-	/**
-	 * Mark a dimension as unique
-	 * @param dim
-	 */
-	public void setUnique(int dim) {
-		unique[dim] = true;
-		dimActual++;
-	}
-	
-	public int getDimActual() {
-		return dimActual;
-	}
-	
-	/**
-	 * 
-	 * @return Dimensionality as defined by user.
-	 */
-	public int getDim() {
-		return dimUser;
-	}
-	
-	/**
-	 * 
-	 * @return Depth in bits.
-	 */
-	public int getDepth() {
-		return 64;
-	}
+//    static <T> PhMapperK<T, long[]> LONG_ARRAY() {
+//        return e -> (e.getKey());
+//    }
+//
+//    static <T> PhMapperK<T, double[]> DOUBLE_ARRAY() {
+//        return e -> (toDouble(e.getKey()));
+//    }
 
-	public int[] getDimsToSplit() {
-		int[] ret = new int[dimActual-dimUser];
-		int n = 0;
-		for (int i = 0; i < unique.length; i++) {
-			if (unique[i]) {
-				ret[n] = i;
-				n++;
-			}
-		}
-		return ret;
-	}
+  private static final long serialVersionUID = 1L;
+
+  public static double[] toDouble(long[] point) {
+    double[] d = new double[point.length];
+    for (int i = 0; i < d.length; i++) {
+      d[i] = BitTools.toDouble(point[i]);
+    }
+    return d;
+  }
+
 }

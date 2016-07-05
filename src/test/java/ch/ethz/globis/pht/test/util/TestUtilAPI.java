@@ -28,6 +28,7 @@ import ch.ethz.globis.pht.PhTree;
 public interface TestUtilAPI {
 
 	public <T> PhTree<T> newTreeV(int dim, int depth);
+	public <T> PhTree<T> newTreeV(int dim);
 
 	public <T> void close(PhTree<T> tree);
 	public void beforeTest();

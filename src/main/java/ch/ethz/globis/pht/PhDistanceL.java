@@ -24,7 +24,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 /**
- * Calculate the distance for integer values.
+ * Calculate the euclidean distance for integer values.
  * 
  * @see PhDistance
  * 
@@ -53,8 +53,10 @@ public class PhDistanceL implements PhDistance {
   public void toMBB(double distance, long[] center, long[] outMin,
       long[] outMax) {
     for (int i = 0; i < center.length; i++) {
+			//casting to 'long' always rounds down (floor)
       outMin[i] = (long) (center[i] - distance);
-      outMax[i] = (long) (center[i] + distance);
+			//casting to 'long' after adding 1.0 always rounds up (ceiling)
+			outMax[i] = (long) (center[i] + distance + 1);
     }
   }
 }

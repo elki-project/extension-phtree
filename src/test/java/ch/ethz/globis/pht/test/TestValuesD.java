@@ -31,6 +31,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.util.Arrays;
+import java.util.List;
 import java.util.Random;
 
 import org.junit.Test;
@@ -43,9 +44,9 @@ import ch.ethz.globis.pht.test.util.TestUtil;
 
 public class TestValuesD extends TestSuper {
 
-    @SuppressWarnings({ "unchecked", "rawtypes" })
-	public static <T> PhTreeF<T> createTree(int dim) {
-    	return new PhTreeF(TestUtil.newTree(dim, 64));
+	@SuppressWarnings("unchecked")
+  public static <T> PhTreeF<T> createTree(int dim) {
+    	return (PhTreeF<T>) PhTreeF.wrap(TestUtil.newTree(dim, 64));
     }
     
 	@Test
@@ -227,5 +228,63 @@ public class TestValuesD extends TestSuper {
 		}
 		
 	}
+
+	@Test
+	public void testQuerySet() {
+		int N = 1000;
+		int DIM = 3;
+		Random R = new Random(0);
+		PhTreeF<Integer> ind = createTree(DIM);
+		double[][] keys = new double[N][DIM];
+		for (int i = 0; i < N; i++) {
+			for (int d = 0; d < DIM; d++) {
+				keys[i][d] = R.nextDouble(); //INT!
+			}
+			if (ind.contains(keys[i])) {
+				i--;
+				continue;
+			}
+			//build
+			assertNull(ind.put(keys[i], Integer.valueOf(i)));
+			assertTrue(ind.contains(keys[i]));
+			assertEquals(i, (int)ind.get(keys[i]));
+		}
+
+		//full range query
+		double[] min = new double[DIM];
+		double[] max = new double[DIM];
+		Arrays.fill(min, Double.NEGATIVE_INFINITY);
+		Arrays.fill(max, Double.POSITIVE_INFINITY);
+		List<PhEntryF<Integer>> list = ind.queryAll(min, max);
+		int n = 0;
+		for (PhEntryF<Integer> e: list) {
+			assertNotNull(e);
+			assertArrayEquals(keys[e.getValue()], e.getKey());
+			n++;
+		}
+		assertEquals(N, n);
+		
+		//spot queries
+		for (int i = 0; i < N; i++) {
+			list = ind.queryAll(keys[i], keys[i]);
+			assertFalse(list.isEmpty());
+			PhEntryF<Integer> e = list.iterator().next();
+			assertArrayEquals(keys[i], e.getKey());
+			assertEquals(i, (int)e.getValue());
+			assertEquals(1, list.size());
+		}
+		
+		//delete
+		for (int i = 0; i < N; i++) {
+			//System.out.println("Removing: " + Bits.toBinary(keys[i], 64));
+			//System.out.println("Tree: \n" + ind);
+			assertEquals(i, (int)ind.remove(keys[i]));
+			assertFalse(ind.contains(keys[i]));
+			assertNull(ind.get(keys[i]));
+		}
+		
+		assertEquals(0, ind.size());
+	}
+	
 
 }

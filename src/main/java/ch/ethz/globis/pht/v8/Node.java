@@ -47,6 +47,9 @@ class Node<T> {
   //size of references in bytes
   private static final int REF_BITS = 4*8;
 
+	/**
+	 * @return true if NI should be used. 
+	 */
   private static final boolean NI_THRESHOLD(int subCnt, int postCnt) {
     return (subCnt > 500 || postCnt > 50);
   }
@@ -89,27 +92,27 @@ class Node<T> {
   private CritBit64<NodeEntry<T>> ind = null;
 
 
-  protected Node(int infixLen, int postLen, int estimatedPostCount, int DIM, PhTree8<T> tree) {
+  protected Node(int infixLen, int postLen, int estimatedPostCount, PhTree8<T> tree) {
     this.infixLen = (byte) infixLen;
     this.postLen = (byte) postLen;
     tree.increaseNrNodes();
     if (estimatedPostCount >= 0) {
-      int size = calcArraySizeTotalBits(estimatedPostCount, DIM);
+			int size = calcArraySizeTotalBits(estimatedPostCount, tree.getDim());
       this.ba = Bits.arrayCreate(size);
     }
   }
 
   static <T> Node<T> createNode(PhTree8<T> tree, int infixLen, int postLen, 
-      int estimatedPostCount, final int DIM) {
-    return new Node<T>(infixLen, postLen, estimatedPostCount, DIM, tree);
+			int estimatedPostCount) {
+		return new Node<>(infixLen, postLen, estimatedPostCount, tree);
   }
 
   NodeEntry<T> createNodeEntry(Node<T> sub) {
-    return new NodeEntry<>(sub);
+		return new NodeEntry<>(sub);
   }
 
   NodeEntry<T> createNodeEntry(long[] key, T value) {
-    return new NodeEntry<>(key, value);
+		return new NodeEntry<>(key, value);
   }
 
   boolean hasInfixes() {
@@ -275,7 +278,7 @@ class Node<T> {
     int subOffsBits = getBitPos_SubNodeIndex(DIM);
 
     //switch to normal array (full hyper-cube) if applicable.
-    if (DIM<=31 && (REF_BITS+SIK_WIDTH(DIM))*(subNRef.length+1L) >= REF_BITS*(1L<<DIM)*1) {
+		if (DIM<=31 && (REF_BITS+SIK_WIDTH(DIM))*(subNRef.length+1L) >= REF_BITS*(1L<<DIM)) {
       //migrate to full array!
       Node<T>[] na = new Node[1<<DIM];
       for (int i = 0; i < bufSubCount; i++) {
@@ -460,7 +463,12 @@ class Node<T> {
    */
   boolean postEqualsPOB(int offsPostKey, long hcPos, long[] key) {
     if (isPostNI()) {
-      long[] post = niGet(hcPos).getKey();
+			NodeEntry<T> e = niGet(hcPos);
+			if (e == null) {
+				//does not exist? Return 'unequal'.
+				return false;
+			}
+			long[] post = e.getKey();
       long mask = ~((-1L) << postLen);
       for (int i = 0; i < key.length; i++) {
         //post requires a mask because we currently don't adjust it if the node moves 
@@ -653,12 +661,20 @@ class Node<T> {
     }
   }
 
+	/**
+	 * WARNING: This is overloaded in subclasses of Node.
+	 * @return Index.
+	 */
+	CritBit64<NodeEntry<T>> createNiIndex() {
+		return CritBit64.create();
+	}
+	
   void niBuild(int bufSubCnt, int bufPostCnt, int DIM) {
     //Migrate node to node-index representation
     if (ind != null || isPostNI() || isSubNI()) {
       throw new IllegalStateException();
     }
-    ind = CritBit64.create();
+		ind = createNiIndex();
 
     //read posts 
     if (isPostHC()) {
@@ -1031,6 +1047,32 @@ class Node<T> {
     return createNodeEntry(key, val);
   }
 
+	/**
+	 * Same as above, but without checks.
+	 */
+	PhEntry<T> getPostPOBNoCheck(int offsPostKey, long hcPos, int DIM, long[] valTemplate,
+			long[] rangeMin, long[] rangeMax) {
+		int valPos = offs2ValPos(offsPostKey, hcPos, DIM);
+		T val = values[valPos];
+		if (val instanceof PhEntry) {
+			return (PhEntry<T>) val;
+		}
+
+		long[] key = new long[DIM];
+		System.arraycopy(valTemplate, 0, key, 0, DIM);
+		PhTreeHelper.applyHcPos(hcPos, postLen, key);
+
+		long[] ia = ba;
+		int offs = offsPostKey;
+		final long mask = (~0L)<<postLen;
+		for (int i = 0; i < key.length; i++) {
+			key[i] &= mask;
+			key[i] |= Bits.readArray(ia, offs, postLen);
+			offs += postLen;
+		}
+		return new PhEntry<T>(key, val);
+	}
+
   T getPostValuePOB(int offs, long pos, int DIM) {
     if (!isPostNI()) {
       int valPos = offs2ValPos(offs, pos, DIM);
@@ -1049,7 +1091,9 @@ class Node<T> {
       return old;
     } 
 
-    return niPutNoCopy(pos, key, value).getValue(); 
+		//We may have null here, because in case of NI, update() also called if no value exists. 
+		NodeEntry<T> e = niPutNoCopy(pos, key, value);
+		return e == null ? null : e.getValue(); 
   }
 
 
@@ -1343,11 +1387,15 @@ class Node<T> {
         }
         return p2 * (PIK_WIDTH(DIM) + postLen * DIM) + offsInd + PIK_WIDTH(DIM);
       } else {
-        NodeEntry<T> e = niGet(pos);
-        if (e != null && e.getKey() != null) {
-          return (int)pos;
-        }
-        return (int) (-pos -1);
+				//For NI, this value is not used, because checking for presence is quite 
+				//expensive. However, we have to return a positive value to avoid abortion
+				//of search (negative indicates that no value exists). It is hack though...
+				return Integer.MAX_VALUE;
+//				NodeEntry<T> e = niGet(pos);
+//				if (e != null && e.getKey() != null) {
+//					return (int)pos;
+//				}
+//				return (int) (-pos -1);
       }
     }
   }

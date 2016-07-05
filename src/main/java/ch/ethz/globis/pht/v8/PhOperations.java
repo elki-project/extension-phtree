@@ -25,12 +25,12 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 public interface PhOperations<T> {
 	
-	public Node<T> createNode(PhTree8<T> parent, int infixLen, int postLen, 
-			int estimatedPostCount, final int DIM);
+  public Node<T> createNode(PhTree8<T> parent, int infixLen, int postLen, 
+      int estimatedPostCount);
 
-    public T put(long[] key, T value);
+  public T put(long[] key, T value);
 
-    public T remove(long... key);
+  public T remove(long... key);
 
-    public T update(long[] oldKey, long[] newKey);
+  public T update(long[] oldKey, long[] newKey);
 }

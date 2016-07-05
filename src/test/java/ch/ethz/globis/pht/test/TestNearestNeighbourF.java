@@ -35,21 +35,28 @@ import java.util.Random;
 import org.junit.Test;
 
 import ch.ethz.globis.pht.PhDistanceF;
+import ch.ethz.globis.pht.PhTree;
+import ch.ethz.globis.pht.PhTree.PhIterator;
+import ch.ethz.globis.pht.PhTree.PhKnnQuery;
 import ch.ethz.globis.pht.PhTreeF;
 import ch.ethz.globis.pht.PhTreeF.PhIteratorF;
-import ch.ethz.globis.pht.PhTreeF.PhQueryKNNF;
+import ch.ethz.globis.pht.PhTreeF.PhKnnQueryF;
 import ch.ethz.globis.pht.util.BitTools;
 import ch.ethz.globis.pht.util.Bits;
 
 public class TestNearestNeighbourF {
 
-  private <T> PhTreeF<T> newTree(int DIM) {
+	private <T> PhTreeF<T> newTreeF(int DIM) {
     return PhTreeF.create(DIM);
   }
 
+	private <T> PhTree<T> newTree(int DIM) {
+		return PhTree.create(DIM);
+	}
+
   @Test
   public void testDirectHit() {
-    PhTreeF<double[]> idx = newTree(2);
+		PhTreeF<double[]> idx = newTreeF(2);
     idx.put(new double[]{2,2}, new double[]{2,2});
     idx.put(new double[]{1,1}, new double[]{1,1});
     idx.put(new double[]{1,3}, new double[]{1,3});
@@ -77,7 +84,7 @@ public class TestNearestNeighbourF {
 
   @Test
   public void testNeighbour1of4() {
-    PhTreeF<double[]> idx = newTree(2);
+		PhTreeF<double[]> idx = newTreeF(2);
     idx.put(new double[]{2,2}, new double[]{2,2});
     idx.put(new double[]{1,1}, new double[]{1,1});
     idx.put(new double[]{1,3}, new double[]{1,3});
@@ -90,7 +97,7 @@ public class TestNearestNeighbourF {
 
   @Test
   public void testNeighbour1of5DirectHit() {
-    PhTreeF<double[]> idx = newTree(2);
+		PhTreeF<double[]> idx = newTreeF(2);
     idx.put(new double[]{3,3}, new double[]{3,3});
     idx.put(new double[]{2,2}, new double[]{2,2});
     idx.put(new double[]{1,1}, new double[]{1,1});
@@ -104,7 +111,7 @@ public class TestNearestNeighbourF {
 
   @Test
   public void testNeighbour4_5of4() {
-    PhTreeF<double[]> idx = newTree(2);
+		PhTreeF<double[]> idx = newTreeF(2);
     idx.put(new double[]{3,3}, new double[]{3,3});
     idx.put(new double[]{2,2}, new double[]{2,2});
     idx.put(new double[]{4,4}, new double[]{4,4});
@@ -125,21 +132,87 @@ public class TestNearestNeighbourF {
 
   @Test
   public void testQueryND64Random1() {
+		final int DIM = 4;//5
+		final int LOOP = 1;//10;
+		final int N = 1000;
+		final int NQ = 1000;
+		final int MAXV = 1000;
+		for (int d = 0; d < LOOP; d++) {
+			final Random R = new Random(d);
+			PhTreeF<Object> ind = newTreeF(DIM);
+			PhKnnQueryF<Object> q = ind.nearestNeighbour(1, new double[DIM]);
+			for (int i = 0; i < N; i++) {
+				double[] v = new double[DIM];
+				for (int j = 0; j < DIM; j++) {
+					v[j] = R.nextDouble()*MAXV;
+				}
+				ind.put(v, null);
+			}
+			for (int i = 0; i < NQ; i++) {
+				double[] v = new double[DIM];
+				for (int j = 0; j < DIM; j++) {
+					v[j] = R.nextDouble()*MAXV;
+				}
+				double[] exp = nearestNeighbor1(ind, v);
+				List<double[]> nnList = toList(q.reset(1, null, v));
+				
+				assertTrue("i=" + i + " d=" + d, !nnList.isEmpty());
+				double[] nn = nnList.get(0);
+				check(v, exp, nn);
+			}
+		}
+	}
+
+	@Test
+	public void testQueryND64Random1_int() {
     final int DIM = 5;
     final int LOOP = 10;
     final int N = 1000;
     final int NQ = 1000;
     final int MAXV = 1000;
+		for (int d = 0; d < LOOP; d++) {
+			final Random R = new Random(d);
+			PhTree<Object> ind = newTree(DIM);
+			PhKnnQuery<Object> q = ind.nearestNeighbour(1, new long[DIM]);
+			for (int i = 0; i < N; i++) {
+				long[] v = new long[DIM];
+				for (int j = 0; j < DIM; j++) {
+					v[j] = R.nextInt(MAXV);
+				}
+				ind.put(v, null);
+			}
+			for (int i = 0; i < NQ; i++) {
+				long[] v = new long[DIM];
+				for (int j = 0; j < DIM; j++) {
+					v[j] = R.nextInt(MAXV);
+				}
+				long[] exp = nearestNeighbor1(ind, v);
+				List<long[]> nnList = toList(q.reset(1, null, v));
+				
+				assertTrue("i=" + i + " d=" + d, !nnList.isEmpty());
+				long[] nn = nnList.get(0);
+				check(v, exp, nn);
+			}
+		}
+	}
+
+	@Test
+	public void testQueryND64RandomDF() {
+		final int DIM = 15;
+		final int LOOP = 10;
+		final int N = 1000;
+		final int NQ = 1000;
+		final int MAXV = 1000;
     final Random R = new Random(0);
     for (int d = 0; d < LOOP; d++) {
-      PhTreeF<Object> ind = newTree(DIM);
-      PhQueryKNNF<Object> q = ind.nearestNeighbour(1, new double[DIM]);
+			PhTreeF<Object> ind = newTreeF(DIM);
+			PhKnnQueryF<Object> q = ind.nearestNeighbour(1, new double[DIM]);
       for (int i = 0; i < N; i++) {
         double[] v = new double[DIM];
         for (int j = 0; j < DIM; j++) {
           v[j] = R.nextDouble()*MAXV;
         }
-        ind.put(v, null);
+				ind.put(v, v);
       }
       for (int i = 0; i < NQ; i++) {
         double[] v = new double[DIM];
@@ -150,7 +223,7 @@ public class TestNearestNeighbourF {
         //        System.out.println("d="+ d + "   i=" + i + "   minD=" + dist(v, exp));
         //        System.out.println("v="+ Arrays.toString(v));
         //        System.out.println("exp="+ Arrays.toString(exp));
-        List<double[]> nnList = toList(q.reset(1, null, null, v));
+				List<double[]> nnList = toList(q.reset(1, PhDistanceF.THIS, v));
 
         //        System.out.println(ind.toStringPlain());
         //        System.out.println("v  =" + Arrays.toString(v));
@@ -163,33 +236,34 @@ public class TestNearestNeighbourF {
   }
 
   @Test
-  public void testQueryND64RandomDF() {
-    final int DIM = 5;
+	public void testQueryND64RandomDF_OnArray() {
+		final int DIM = 15;
     final int LOOP = 10;
     final int N = 1000;
     final int NQ = 1000;
     final int MAXV = 1000;
     final Random R = new Random(0);
+		double[][] vA = new double[N][DIM];
     for (int d = 0; d < LOOP; d++) {
-      PhTreeF<Object> ind = newTree(DIM);
-      PhQueryKNNF<Object> q = ind.nearestNeighbour(1, new double[DIM]);
+			PhTreeF<Object> ind = newTreeF(DIM);
+			PhKnnQueryF<Object> q = ind.nearestNeighbour(1, new double[DIM]);
       for (int i = 0; i < N; i++) {
-        double[] v = new double[DIM];
+				double[] v = vA[i];//new double[DIM];
         for (int j = 0; j < DIM; j++) {
           v[j] = R.nextDouble()*MAXV;
         }
-        ind.put(v, null);
+				ind.put(v, v);
       }
       for (int i = 0; i < NQ; i++) {
         double[] v = new double[DIM];
         for (int j = 0; j < DIM; j++) {
           v[j] = R.nextDouble()*MAXV;
         }
-        double[] exp = nearestNeighbor1(ind, v);
+				double[] exp = nearestNeighbor1(vA, v);
         //        System.out.println("d="+ d + "   i=" + i + "   minD=" + dist(v, exp));
         //        System.out.println("v="+ Arrays.toString(v));
         //        System.out.println("exp="+ Arrays.toString(exp));
-        List<double[]> nnList = toList(q.reset(1, PhDistanceF.THIS, null, v));
+				List<double[]> nnList = toList(q.reset(1, PhDistanceF.THIS, v));
 
         //        System.out.println(ind.toStringPlain());
         //        System.out.println("v  =" + Arrays.toString(v));
@@ -211,8 +285,8 @@ public class TestNearestNeighbourF {
     final int MAXV = 1000;
     final Random R = new Random(0);
     for (int d = 0; d < LOOP; d++) {
-      PhTreeF<Object> ind = newTree(DIM);
-      PhQueryKNNF<Object> q = ind.nearestNeighbour(1, new double[DIM]);
+			PhTreeF<Object> ind = newTreeF(DIM);
+			PhKnnQueryF<Object> q = ind.nearestNeighbour(1, new double[DIM]);
       for (int i = 0; i < N; i++) {
         double[] v = new double[DIM];
         for (int j = 0; j < DIM; j++) {
@@ -229,7 +303,7 @@ public class TestNearestNeighbourF {
         //        System.out.println("d="+ d + "   i=" + i + "   minD=" + dist(v, exp));
         //        System.out.println("v="+ Arrays.toString(v));
         //        System.out.println("exp="+ Arrays.toString(exp));
-        List<double[]> nnList = toList(q.reset(1, PhDistanceF.THIS, null, v));
+				List<double[]> nnList = toList(q.reset(1, PhDistanceF.THIS, v));
 
         //        System.out.println(ind.toStringPlain());
         //        System.out.println("v  =" + Arrays.toString(v));
@@ -255,7 +329,7 @@ public class TestNearestNeighbourF {
 
     final int DIM = data[0].length;
     final int N = data.length;
-    PhTreeF<Object> ind = newTree(DIM);
+		PhTreeF<Object> ind = newTreeF(DIM);
     for (int i = 0; i < N; i++) {
       ind.put(data[i], data[i]);
     }
@@ -308,7 +382,7 @@ public class TestNearestNeighbourF {
 
     final int DIM = data[0].length;
     final int N = data.length;
-    PhTreeF<Object> ind = newTree(DIM);
+		PhTreeF<Object> ind = newTreeF(DIM);
     for (int i = 0; i < N; i++) {
       ind.put(data[i], null);
     }
@@ -384,7 +458,7 @@ public class TestNearestNeighbourF {
 
     final int DIM = data[0].length;
     final int N = data.length;
-    PhTreeF<Object> ind = newTree(DIM);
+		PhTreeF<Object> ind = newTreeF(DIM);
     for (int i = 0; i < N; i++) {
       ind.put(data[i], null);
     }
@@ -445,7 +519,7 @@ public class TestNearestNeighbourF {
 
     final int DIM = data[0].length;
     final int N = data.length;
-    PhTreeF<Object> ind = newTree(DIM);
+		PhTreeF<Object> ind = newTreeF(DIM);
     for (int i = 0; i < N; i++) {
       ind.put(data[i], null);
     }
@@ -482,7 +556,7 @@ public class TestNearestNeighbourF {
     final int MAXV = 100;
     final Random R = new Random(0);
 
-    PhTreeF<Object> ind = newTree(DIM);
+		PhTreeF<Object> ind = newTreeF(DIM);
     for (int i = 0; i < N; i++) {
       double[] v = new double[DIM];
       for (int j = 0; j < DIM; j++) {
@@ -518,16 +592,97 @@ public class TestNearestNeighbourF {
     return best;
   }
 
+	private double[] nearestNeighbor1(double[][] vA, double[] q) {
+		double d = Double.MAX_VALUE;
+		double[] best = null;
+		for (int i = 0; i < vA.length; i++) {
+			double[] cand = vA[i];
+			double dNew = dist(q, cand);
+			if (dNew < d) {
+				d = dNew;
+				best = cand;
+			}
+		}
+		return best;
+	}
+	
+	private long[] nearestNeighbor1(PhTree<?> tree, long[] q) {
+		double d = Double.MAX_VALUE;
+		long[] best = null;
+		PhIterator<?> i = tree.queryExtent();
+		while (i.hasNext()) {
+			long[] cand = i.nextKey();
+			double dNew = dist(q, cand);
+			if (dNew < d) {
+				d = dNew;
+				best = cand;
+			}
+		}
+		return best;
+	}
+	
+//	private long[] nearestNeighbor1(long[][] vA, long[] q) {
+//		double d = Double.MAX_VALUE;
+//		long[] best = null;
+//		for (int i = 0; i < vA.length; i++) {
+//			long[] cand = vA[i];
+//			double dNew = dist(q, cand);
+//			if (dNew < d) {
+//				d = dNew;
+//				best = cand;
+//			}
+//		}
+//		return best;
+//	}
+	
+//	private double[] nearestNeighborK(PhTreeF<?> tree, double[] q) {
+//		double d = Double.MAX_VALUE;
+//		double[] best = null;
+//		PhIteratorF<?> i = tree.queryExtent();
+//		while (i.hasNext()) {
+//		  double[] cand = i.nextKey();
+//			double dNew = dist(q, cand);
+//			if (dNew < d) {
+//				d = dNew;
+//				best = cand;
+//			}
+//		}
+//		return best;
+//	}
+	
   private void check(double[] v, double[] c1, double[] c2) {
     for (int i = 0; i < c1.length; i++) {
       if (c1[i] != c2[i]) {
         double d1 = dist(v, c1);
         double d2 = dist(v, c2);
-        double maxEps = Math.abs(d2-d1)/d1;
-        if (maxEps >= 1) {
+				double maxEps = Math.abs(d2-d1)/(d1+d2);
+				if (maxEps >= 0.00001) {
+					System.out.println("WARNING: different values found: " + d1 + "/" + d2);
+					System.out.println("v =" + Arrays.toString(v));
+					System.out.println("c1=" + Arrays.toString(c1));
+					System.out.println("c2=" + Arrays.toString(c2));
+					System.out.println("v =" + Bits.toBinary(v));
+					System.out.println("c1=" + Bits.toBinary(c1));
+					System.out.println("c2=" + Bits.toBinary(c2));
+					fail();
+				}
+				break;
+			}
+		}
+	}
+
+	private void check(long[] v, long[] c1, long[] c2) {
+		for (int i = 0; i < c1.length; i++) {
+			if (c1[i] != c2[i]) {
+				double d1 = dist(v, c1);
+				double d2 = dist(v, c2);
+				double maxEps = Math.abs(d2-d1)/(d1+d2);
+				if (maxEps >= 0.00001) {
           System.out.println("WARNING: different values found: " + d1 + "/" + d2);
           System.out.println("c1=" + Arrays.toString(c1));
           System.out.println("c2=" + Arrays.toString(c2));
+					System.out.println("c1=" + Bits.toBinary(c1));
+					System.out.println("c2=" + Bits.toBinary(c2));
           fail();
         }
         break;
@@ -544,6 +699,15 @@ public class TestNearestNeighbourF {
     return Math.sqrt(d);
   }
 
+	private double dist(long[] v1, long[] v2) {
+		double d = 0;
+		for (int i = 0; i < v1.length; i++) {
+			double dl = v1[i] - v2[i];
+			d += dl*dl;
+		}
+		return Math.sqrt(d);
+	}
+	
   private void check(int DEPTH, double[] t, double ... ints) {
     for (int i = 0; i < ints.length; i++) {
       assertEquals("i=" + i + " | " + toBinary(ints, DEPTH) + " / " + 
@@ -576,7 +740,7 @@ public class TestNearestNeighbourF {
   //    }
   //  }
 
-  private List<double[]> toList(PhQueryKNNF<?> q) {
+	private List<double[]> toList(PhKnnQueryF<?> q) {
     ArrayList<double[]> ret = new ArrayList<>();
     while (q.hasNext()) {
       ret.add(q.nextKey());
@@ -584,6 +748,14 @@ public class TestNearestNeighbourF {
     return ret;
   }
 
+	private List<long[]> toList(PhKnnQuery<?> q) {
+		ArrayList<long[]> ret = new ArrayList<>();
+		while (q.hasNext()) {
+			ret.add(q.nextKey());
+		}
+		return ret;
+	}
+	
   private String toBinary(double[] d, int DEPTH) {
     long[] l = new long[d.length];
     for (int i = 0; i < l.length; i++) {

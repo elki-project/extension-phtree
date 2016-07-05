@@ -1,5 +1,6 @@
 package ch.ethz.globis.pht;
 
+import java.io.Serializable;
 
 /*
 This file is part of ELKI:
@@ -27,12 +28,14 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 /**
  * Interface for PhIterator filters. A checker is continuously checked 
  * during navigation to see whether subnodes or postfixes should be traversed. 
- * 
+ *
+ * This interface needs to be serializable because in the distributed version of the PhTree, 
+ * it is send from the client machine to the server machine.
  * 
  * @author Tilmann Zäschke
  *
  */
-public interface PhFilter {
+public interface PhFilter extends Serializable {
 
   /**
    * 

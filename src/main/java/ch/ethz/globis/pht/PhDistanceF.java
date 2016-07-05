@@ -27,7 +27,7 @@ import ch.ethz.globis.pht.util.BitTools;
 
 
 /**
- * Calculate the distance for encoded {@code double} values.
+ * Calculate the euclidean distance for encoded {@code double} values.
  * 
  * @see PhDistance
  * 
@@ -35,10 +35,10 @@ import ch.ethz.globis.pht.util.BitTools;
  */
 public class PhDistanceF implements PhDistance {
 
-  public static final PhDistance THIS = new PhDistanceF();
+	public static final PhDistanceF THIS = new PhDistanceF();
 
   /**
-   * Calculate the distance for encoded {@code double} values.
+	 * Calculate the euclidean distance for encoded {@code double} values.
    * 
    * @see PhDistance#dist(long[], long[])
    */

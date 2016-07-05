@@ -1,5 +1,7 @@
 package de.lmu.ifi.dbs.elki.index.tree.spatial.ph;
 
+import java.util.Arrays;
+
 /*
 This file is part of ELKI:
 Environment for Developing KDD-Applications Supported by Index-Structures
@@ -23,7 +25,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import ch.ethz.globis.pht.PhTreeF;
 import ch.ethz.globis.pht.PhTreeF.PhEntryF;
-import ch.ethz.globis.pht.PhTreeF.PhQueryKNNF;
+import ch.ethz.globis.pht.PhTreeF.PhKnnQueryF;
 import ch.ethz.globis.pht.PhTreeF.PhRangeQueryF;
 import ch.ethz.globis.pht.pre.IntegerPP;
 import de.lmu.ifi.dbs.elki.data.NumberVector;
@@ -191,7 +193,7 @@ public class MemoryPHTree<O extends NumberVector> extends AbstractIndex<O>
     /**
      * Query instance.
      */
-    private final PhQueryKNNF<DBID> query;
+    private final PhKnnQueryF<DBID> query;
 
     /**
      * Center point.
@@ -218,7 +220,8 @@ public class MemoryPHTree<O extends NumberVector> extends AbstractIndex<O>
       final KNNHeap knns = DBIDUtil.newHeap(k);
 
       oToDouble(obj, center);
-      query.reset(k, dist, null, center);
+      //LOG.error("Hello! origin=" + Arrays.toString(center));  //TODO
+      query.reset(k, dist, center);
       while (query.hasNext()) {
         DBID id = query.nextValue();
         O o2 = relation.get(id);

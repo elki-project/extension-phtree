@@ -174,11 +174,7 @@ public class NodeIteratorNoGC<T> {
             useNiHcIncrementer = true;
         } else {
             useNiHcIncrementer = false;
-            if (niIterator == null) {
-              niIterator = new QueryIteratorMask<>();
             }
-            niIterator.reset(node.ind(), maskLower, maskUpper);
-        }
       } else if (PhTree8.HCI_ENABLED){
         if (isPostHC) {
           //nPossibleMatch < 2^k?
@@ -195,7 +191,23 @@ public class NodeIteratorNoGC<T> {
         }
       }
     }
-  }
+		
+		if (isPostNI && !useNiHcIncrementer) {
+			//TODO use non-mask iterator if node is fully included in query rectangle
+			if (niIterator == null) {
+				niIterator = new QueryIteratorMask<>();
+			}
+			niIterator.reset(node.ind(), maskLower, maskUpper);
+		}
+
+		//TODO instead of switching them on an off, use iterator to calculate distance to
+		//next valid entry. Use this distance to estimate whether its faster to check
+		//all following elements or whether we should check the next value directly.
+
+		//For sub-HC, the standard iteration is extremely efficient ( node[pos]!=0 ?), so we
+		//should resort to HC-incrementer only rarely.
+		//Use it only if it is at least 25% full
+	}
 
   /**
    * @return TRUE if the node has more elements, irrespective of whether they match the query.
@@ -292,10 +304,7 @@ public class NodeIteratorNoGC<T> {
       }
       if (!isPostNI) {
         int pob = node.getPostOffsetBits(currentPos, DIM);
-        if (pob >= 0) {
-          if (!readValue(currentPos, pob, result)) {
-            continue;
-          }
+				if (pob >= 0 && readValue(currentPos, pob, result)) {
           return currentPos;
         }
       }
@@ -597,8 +606,6 @@ public class NodeIteratorNoGC<T> {
         }
       }
     } else {
-      //currentDepth==0
-
       //special treatment for signed longs
       //The problem (difference) here is that a '1' at the leading bit does indicate a
       //LOWER value, opposed to indicating a HIGHER value as in the remaining 63 bits.

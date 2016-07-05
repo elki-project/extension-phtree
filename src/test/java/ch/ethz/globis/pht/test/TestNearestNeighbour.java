@@ -37,7 +37,7 @@ import org.junit.Test;
 
 import ch.ethz.globis.pht.PhTree;
 import ch.ethz.globis.pht.PhTree.PhIterator;
-import ch.ethz.globis.pht.PhTree.PhQueryKNN;
+import ch.ethz.globis.pht.PhTree.PhKnnQuery;
 import ch.ethz.globis.pht.test.util.TestUtil;
 import ch.ethz.globis.pht.util.Bits;
 
@@ -129,7 +129,7 @@ public class TestNearestNeighbour {
     final Random R = new Random(0);
     for (int d = 0; d < LOOP; d++) {
       PhTree<Object> ind = TestUtil.newTree(DIM, 32);
-      PhQueryKNN<Object> q = ind.nearestNeighbour(1, new long[DIM]);
+			PhKnnQuery<Object> q = ind.nearestNeighbour(1, new long[DIM]);
       for (int i = 0; i < N; i++) {
         long[] v = new long[DIM];
         for (int j = 0; j < DIM; j++) {
@@ -146,7 +146,7 @@ public class TestNearestNeighbour {
         //        System.out.println("d="+ d + "   i=" + i + "   minD=" + dist(v, exp));
         //        System.out.println("v="+ Arrays.toString(v));
         //        System.out.println("exp="+ Arrays.toString(exp));
-        List<long[]> nnList = toList(q.reset(1, null, null, v));
+				List<long[]> nnList = toList(q.reset(1, null, v));
 
         //        System.out.println(ind.toStringPlain());
         //        System.out.println("v  =" + Arrays.toString(v));
@@ -443,6 +443,7 @@ public class TestNearestNeighbour {
         double maxEps = Math.abs(d2-d1)/d1;
         if (maxEps >= 1) {
           System.out.println("WARNING: different values found: " + d1 + "/" + d2);
+					System.out.println("c1=" + Arrays.toString(v));
           System.out.println("c1=" + Arrays.toString(c1));
           System.out.println("c2=" + Arrays.toString(c2));
           fail();
@@ -486,7 +487,7 @@ public class TestNearestNeighbour {
     return false;
   }
 
-  private List<long[]> toList(PhQueryKNN<?> q) {
+	private List<long[]> toList(PhKnnQuery<?> q) {
     ArrayList<long[]> ret = new ArrayList<>();
     while (q.hasNext()) {
       ret.add(q.nextKey());

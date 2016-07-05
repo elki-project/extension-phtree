@@ -33,12 +33,11 @@ import java.util.NoSuchElementException;
 import org.zoodb.index.critbit.CritBit64.CBIterator;
 import org.zoodb.index.critbit.CritBit64.Entry;
 
-import ch.ethz.globis.pht.PhDimFilter;
 import ch.ethz.globis.pht.PhDistance;
 import ch.ethz.globis.pht.PhEntry;
 import ch.ethz.globis.pht.PhFilterDistance;
 import ch.ethz.globis.pht.PhTree.PhIterator;
-import ch.ethz.globis.pht.PhTree.PhQueryKNN;
+import ch.ethz.globis.pht.PhTree.PhKnnQuery;
 import ch.ethz.globis.pht.v8.PhTree8.NodeEntry;
 
 /**
@@ -74,7 +73,7 @@ import ch.ethz.globis.pht.v8.PhTree8.NodeEntry;
  * 
  * @param <T> 
  */
-public class PhQueryKnnMbbPP<T> implements PhQueryKNN<T> {
+public class PhQueryKnnMbbPP<T> implements PhKnnQuery<T> {
 
   private final int DIM;
   private int nMin;
@@ -89,7 +88,7 @@ public class PhQueryKnnMbbPP<T> implements PhQueryKNN<T> {
   private final PhFilterDistance checker;
 
   public PhQueryKnnMbbPP(PhTree8<T> pht) {
-    this.DIM = pht.getDIM();
+		this.DIM = pht.getDim();
     this.mbbMin = new long[DIM];
     this.mbbMax = new long[DIM];
     this.pht = pht;
@@ -131,8 +130,7 @@ public class PhQueryKnnMbbPP<T> implements PhQueryKNN<T> {
   }
 
   @Override
-  public PhQueryKNN<T> reset(int nMin, PhDistance dist, PhDimFilter dims,
-      long... center) {
+	public PhKnnQuery<T> reset(int nMin, PhDistance dist, long... center) {
     this.distance = dist == null ? this.distance : dist;
     this.nMin = nMin;
     clearEntries();

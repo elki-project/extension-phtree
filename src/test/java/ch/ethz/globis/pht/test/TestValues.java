@@ -31,6 +31,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import java.util.Arrays;
+import java.util.List;
 import java.util.Random;
 
 import org.junit.Test;
@@ -61,6 +62,14 @@ public class TestValues extends TestSuper {
 	@Test
 	public void test2D_8() {
 		smokeTest(100, 2, 32, 2);
+	}
+	
+	@Test
+	public void test2D_8_Bug10b() {
+//		for (int i = 0; i < 10000; i++) {
+//			System.out.println("iii=" + i);
+			smokeTest(5, 2, 32, 1619);
+//		}
 	}
 	
 	@Test
@@ -165,8 +174,8 @@ public class TestValues extends TestSuper {
 		PhTree<Object> ind = createTree(DIM, 64);
 
 		Object V = new Object();
-		long[] buf = new long[DIM];
 		for (int i = 0; i < keysD.length; i++) {
+			long[] buf = new long[DIM];
 			for (int j = 0; j < DIM; j++) {
 				buf[j] = BitTools.toSortableLong(keysD[i][j]); 
 			}
@@ -313,4 +322,65 @@ public class TestValues extends TestSuper {
 		
 		assertEquals(0, ind.size());
 	}
+	
+	@Test
+	public void testQuerySet() {
+		int N = 1000;
+		int DIM = 3;
+		int DEPTH = 64; 
+		Random R = new Random(0);
+		PhTree<Integer> ind = createTree(DIM, DEPTH);
+		long[][] keys = new long[N][DIM];
+		for (int i = 0; i < N; i++) {
+			for (int d = 0; d < DIM; d++) {
+				keys[i][d] = R.nextInt(); //INT!
+			}
+			if (ind.contains(keys[i])) {
+				i--;
+				continue;
+			}
+			//build
+			assertNull(ind.put(keys[i], Integer.valueOf(i)));
+			assertTrue(ind.contains(keys[i]));
+			assertEquals(i, (int)ind.get(keys[i]));
+		}
+
+		//full range query
+		List<PhEntry<Integer>> list;
+		long[] min = new long[DIM];
+		long[] max = new long[DIM];
+		Arrays.fill(min, Long.MIN_VALUE);
+		Arrays.fill(max, Long.MAX_VALUE);
+		list = ind.queryAll(min, max);
+		int n = 0;
+		for (PhEntry<Integer> e: list) {
+			assertNotNull(e);
+			assertArrayEquals(keys[e.getValue()], e.getKey());
+			n++;
+		}
+		assertEquals(N, n);
+		
+		//spot queries
+		for (int i = 0; i < N; i++) {
+			list = ind.queryAll(keys[i], keys[i]);
+			assertFalse("i=" + i, list.isEmpty());
+			PhEntry<Integer> e = list.iterator().next();
+			assertArrayEquals(keys[i], e.getKey());
+			assertEquals(i, (int)e.getValue());
+			assertEquals(1, list.size());
+		}
+		
+		//delete
+		for (int i = 0; i < N; i++) {
+			//System.out.println("Removing: " + Bits.toBinary(keys[i], 64));
+			//System.out.println("Tree: \n" + ind);
+			assertEquals(i, (int)ind.remove(keys[i]));
+			assertFalse(ind.contains(keys[i]));
+			assertNull(ind.get(keys[i]));
+		}
+		
+		assertEquals(0, ind.size());
+	}
+	
+
 }

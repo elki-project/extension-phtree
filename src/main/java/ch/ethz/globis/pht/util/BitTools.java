@@ -229,7 +229,7 @@ public class BitTools {
 	}
 	
 	/**
-	 * Splits a value.
+	 * Splits a value and write it to trgV at position trg1 and trg2.
 	 * This is the inverse operation to merge(...).
 	 * @param DIM 
 	 * @param toSplit

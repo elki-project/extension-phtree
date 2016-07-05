@@ -1,5 +1,7 @@
 package ch.ethz.globis.pht;
 
+import java.util.List;
+
 /*
 This file is part of ELKI:
 Environment for Developing KDD-Applications Supported by Index-Structures
@@ -24,7 +26,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 import ch.ethz.globis.pht.util.PhIteratorBase;
-import ch.ethz.globis.pht.util.PhTreeQStats;
+import ch.ethz.globis.pht.util.PhMapper;
+import ch.ethz.globis.pht.util.PhTreeStats;
 import ch.ethz.globis.pht.v8.PhTree8;
 
 /**
@@ -35,6 +38,8 @@ import ch.ethz.globis.pht.v8.PhTree8;
  * "The PH-Tree -- A Space-Efficient Storage Structure and Multi-Dimensional Index", 
  * (SIGMOD 2014)
  *
+ * http://www.phtree.org
+ *
  * @author ztilmann (Tilmann Zaeschke)
  * 
  * @param <T> The value type of the tree 
@@ -43,27 +48,38 @@ import ch.ethz.globis.pht.v8.PhTree8;
 public abstract class PhTree<T> {
 
 
-  public abstract int size();
+	/**
+	 * @return The number of entries in the tree
+	 */
+	public abstract int size();
 
-  public abstract int getNodeCount();
-
-  public abstract PhTreeQStats getQuality();
-
-  public abstract PhTreeHelper.Stats getStats();
-
-  public abstract PhTreeHelper.Stats getStatsIdealNoNode();
+	/**
+	 * @return PH-Tree statistics
+	 */
+	public abstract PhTreeStats getStats();
 
 
   /**
    * Insert an entry associated with a k dimensional key.
+	 * This will replace any entry that uses the same key.
    * @param key
    * @param value
    * @return the previously associated value or {@code null} if the key was found
    */
   public abstract T put(long[] key, T value);
 
+	/**
+	 * Checks whether a give key exists in the tree.
+	 * @param key
+	 * @return true if the key exists, otherwise false
+	 */
   public abstract boolean contains(long ... key);
 
+	/**
+	 * Get an entry associated with a k dimensional key.
+	 * @param key
+	 * @return the associated value or {@code null} if the key was found
+	 */
   public abstract T get(long ... key);
 
 
@@ -74,44 +90,62 @@ public abstract class PhTree<T> {
    */
   public abstract T remove(long... key);
 
+	/**
+	 * @return A string with a list of all entries in the tree.
+	 */
   public abstract String toStringPlain();
 
+	/**
+	 * @return A string tree view of all entries in the tree.
+	 */
   public abstract String toStringTree();
 
-  public abstract PhIterator<T> queryExtent();
+	/**
+	 * @return an iterator over all entries in the tree
+	 */
+	public abstract PhExtent<T> queryExtent();
 
 
   /**
-   * Performs a range query. The parameters are the min and max keys.
-   * @param min
-   * @param max
+	 * Performs a rectangular window query. The parameters are the min and max keys which 
+	 * contain the minimum respectively the maximum keys in every dimension.
+	 * @param min Minimum values
+	 * @param max Maximum values
    * @return Result iterator.
    */
   public abstract PhQuery<T> query(long[] min, long[] max);
 
-  public abstract int getDIM();
+	/**
+	 * 
+	 * @return the number of dimensions of the tree
+	 */
+	public abstract int getDim();
 
-  public abstract int getDEPTH();
+	/**
+	 * 
+	 * @return The bit depths for the tree. The latest versions will always return 64. 
+	 */
+	public abstract int getBitDepth();
 
   /**
    * Locate nearest neighbours for a given point in space.
-   * @param nMin number of entries to be returned. More entries may be returned with several have
-   * 				the same distance.
+	 * @param nMin number of entries to be returned. More entries may or may not be returned if 
+	 * several points have the same distance.
    * @param key
    * @return The query iterator.
    */
-  public abstract PhQueryKNN<T> nearestNeighbour(int nMin, long... key);
+	public abstract PhKnnQuery<T> nearestNeighbour(int nMin, long... key);
 
   /**
    * Locate nearest neighbours for a given point in space.
-   * @param nMin number of entries to be returned. More entries may be returned with several have
-   * 				the same distance.
+	 * @param nMin number of entries to be returned. More entries may or may not be returned if 
+	 * several points have the same distance.
    * @param dist the distance function, can be {@code null}. The default is {@link PhDistanceL}.
    * @param dims the dimension filter, can be {@code null}
    * @param key
    * @return The query iterator.
    */
-  public abstract PhQueryKNN<T> nearestNeighbour(int nMin, PhDistance dist, PhDimFilter dims, 
+	public abstract PhKnnQuery<T> nearestNeighbour(int nMin, PhDistance dist, PhFilter dims, 
       long... key);
 
   /**
@@ -120,9 +154,7 @@ public abstract class PhTree<T> {
    * @param center Center point
    * @return All entries with at most distance `dist` from `center`.
    */
-  public PhRangeQuery<T> rangeQuery(double dist, long... center) {
-    return rangeQuery(dist, null, center);
-  }
+	public abstract PhRangeQuery<T> rangeQuery(double dist, long... center);
 
   /**
    * Find all entries within a given distance from a center point.
@@ -141,16 +173,38 @@ public abstract class PhTree<T> {
    * @return the value (can be {@code null}) associated with the updated key if the key could be 
    * updated, otherwise {@code null}.
    */
-  public abstract T update(long[] oldKey, long[] newKey);
+	public abstract T update(long[] oldKey, long[] newKey);
+
+	/**
+	 * Same as {@link #query(long[], long[])}, except that it returns a list
+	 * instead of an iterator. This may be faster for small result sets. 
+	 * @param min
+	 * @param max
+	 * @return List of query results
+	 */
+	public abstract List<PhEntry<T>> queryAll(long[] min, long[] max);
 
   /**
+	 * Same as {@link #query(long[], long[])}, except that it returns a list
+	 * instead of an iterator. This may be faster for small result sets. 
+	 * @param min
+	 * @param max
+	 * @param maxResults
+	 * @param filter
+	 * @param mapper
+	 * @return List of query results
+	 */
+	public abstract <R> List<R> queryAll(long[] min, long[] max, int maxResults, 
+			PhFilter filter, PhMapper<T, R> mapper);
+
+	/**
    * Create a new tree with the specified number of dimensions.
    * 
    * @param dim number of dimensions
    * @return PhTree
    */
   public static <T> PhTree<T> create(int dim) {
-    return new PhTree8<T>(dim);
+    return new PhTree8<>(dim);
   }
 
   public static interface PhIterator<T> extends PhIteratorBase<long[], T, PhEntry<T>> {
@@ -163,10 +217,30 @@ public abstract class PhTree<T> {
      * invalidate the backing tree.
      * @return The next entry
      */
+		@Override
     PhEntry<T> nextEntryReuse();
+	}
 
+	/**
+	 * Interface for extents (query over all elements). The reset methods allows
+	 * reusing the iterator.
+	 * 
+	 * @param <T>
+	 */
+	public static interface PhExtent<T> extends PhIterator<T> {
+
+		/**
+		 * Reset the extent iterator.
+		 * @return the extent itself
+		 */
+		PhExtent<T> reset();
   }
 
+	/**
+	 * Interface for queries. The reset methods allows reusing the query.
+	 * 
+	 * @param <T>
+	 */
   public static interface PhQuery<T> extends PhIterator<T> {
 
     /**
@@ -177,17 +251,21 @@ public abstract class PhTree<T> {
     void reset(long[] min, long[] max);
   }
 
-  public static interface PhQueryKNN<T> extends PhIterator<T> {
+	/**
+	 * Interface for k nearest neighbor queries. The reset methods allows reusing the query.
+	 * 
+	 * @param <T>
+	 */
+	public static interface PhKnnQuery<T> extends PhIterator<T> {
 
     /**
      * Reset the query with the new parameters.
      * @param nMin Minimum result count
      * @param dist Distance function
-     * @param dims dimension filter to specify ignored dimensions
      * @param center The point to find the nearest neighbours for
      * @return the query itself
      */
-    PhQueryKNN<T> reset(int nMin, PhDistance dist, PhDimFilter dims, long... center);
+		PhKnnQuery<T> reset(int nMin, PhDistance dist, long... center);
   }
 
   /**
