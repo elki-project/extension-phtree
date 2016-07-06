@@ -28,6 +28,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 import ch.ethz.globis.pht.util.PhIteratorBase;
 import ch.ethz.globis.pht.util.PhMapper;
 import ch.ethz.globis.pht.util.PhTreeStats;
+import ch.ethz.globis.pht.v11.PhTree11;
 import ch.ethz.globis.pht.v8.PhTree8;
 
 /**
@@ -204,7 +205,7 @@ public abstract class PhTree<T> {
    * @return PhTree
    */
   public static <T> PhTree<T> create(int dim) {
-    return new PhTree8<>(dim);
+    return new PhTree11<>(dim);
   }
 
   public static interface PhIterator<T> extends PhIteratorBase<long[], T, PhEntry<T>> {
