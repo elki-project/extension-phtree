@@ -291,8 +291,7 @@ public class PhtTree<O extends NumberVector> extends IndexTree<PhtNode, PhtEntry
       }
 
       while (query.hasNext()) {
-        PhEntryF<DBID> e = query.nextEntry();
-        DBID id = e.getValue();
+        DBID id = query.nextValue();
         O o2 = relation.get(id);
         double distance = norm.distance(obj, o2);
         result.add(distance, id);
