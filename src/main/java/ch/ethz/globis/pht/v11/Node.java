@@ -949,8 +949,8 @@ public class Node {
 				Bits.writeArray(ia, offs, postLen, key[i]);
 				offs += postLen;
 			}
-			values = Refs.arrayEnsureSize(values, bufEntryCnt+1);
-			Refs.insertAtPos(values, pin, value);
+      values = Refs.insertSpaceAtPos(values, pin, bufEntryCnt+1);
+      values[pin] = value;
 		}
 	}
 
@@ -1369,8 +1369,7 @@ public class Node {
 			ba = Bits.arrayTrim(ba, calcArraySizeTotalBits(bufEntryCnt-1, dims));
 			//values:
 			oldVal = values[posInNode]; 
-			Refs.removeAtPos(values, posInNode);
-			values = Refs.arrayTrim(values, bufEntryCnt-1);
+      values = Refs.removeSpaceAtPos(values, posInNode, bufEntryCnt-1);
 		}
 
 		decEntryCount();
