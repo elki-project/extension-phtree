@@ -141,25 +141,30 @@ public class NodeIteratorFullNoGC<T> {
 
 	@SuppressWarnings("unchecked")
 	private boolean readValue(long pos, long[] kdKey, Object value, NodeEntry<T> result) {
-		PhTreeHelper.applyHcPos(pos, postLen, valTemplate);
-		if (value instanceof Node) {
-			result.setNodeKeepKey((Node) value);
-			node.getInfixOfSubNt(kdKey, valTemplate);
-		} else {
-			long[] resultKey = result.getKey();
-			final long mask = (~0L)<<postLen;
-			for (int i = 0; i < resultKey.length; i++) {
-				resultKey[i] = (valTemplate[i] & mask) | kdKey[i];
-			}
+    PhTreeHelper.applyHcPos(pos, postLen, valTemplate);
+    if (value instanceof Node) {
+      Node sub = (Node) value;
+      result.setNodeKeepKey(sub);
+      node.getInfixOfSubNt(kdKey, valTemplate);
+      if (checker != null && !checker.isValid(sub.getPostLen()+1, valTemplate)) {
+        return false;
+      }
+      result.setNodeKeepKey(sub);
+    } else {
+      long[] resultKey = result.getKey();
+      final long mask = (~0L)<<postLen;
+      for (int i = 0; i < resultKey.length; i++) {
+        resultKey[i] = (valTemplate[i] & mask) | kdKey[i];
+      }
 
-			if (checker != null && !checker.isValid(resultKey)) {
-				return false;
-			}
+      if (checker != null && !checker.isValid(resultKey)) {
+        return false;
+      }
 
-			//ensure that 'node' is set to null
-			result.setPost((T) value);
-		}
-		return true;
+      //ensure that 'node' is set to null
+      result.setPost((T) value);
+    }
+    return true;
 	}
 
 
@@ -202,25 +207,14 @@ public class NodeIteratorFullNoGC<T> {
 	}
 	
 	private void niFindNext(NodeEntry<T> result) {
-		while (ntIterator.hasNext()) {
-			NtEntry<Object> e = ntIterator.nextEntryReuse();
-			next = e.key();
-			if (e.value() instanceof Node) {
-				Node sub = (Node) e.value();
-				PhTreeHelper.applyHcPos(next, postLen, valTemplate);
-				node.getInfixOfSubNt(e.getKdKey(), valTemplate);
-				if (checker != null && !checker.isValid(sub.getPostLen()+1, valTemplate)) {
-					continue;
-				}
-				result.setNodeKeepKey(sub);
-			} else {
-				if (!readValue(e.key(), e.getKdKey(), e.value(), result)) {
-					continue;
-				}
-			}
-			return;
-		}
-		next = FINISHED;
+    while (ntIterator.hasNext()) {
+      NtEntry<Object> e = ntIterator.nextEntryReuse();
+      if (readValue(e.key(), e.getKdKey(), e.value(), result)) {
+        next = e.key();
+        return;
+      }
+    }
+    next = FINISHED;
 	}
 
 	public Node node() {
