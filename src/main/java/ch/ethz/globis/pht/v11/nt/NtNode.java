@@ -24,6 +24,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 import ch.ethz.globis.pht.util.Refs;
+import ch.ethz.globis.pht.util.RefsLong;
 
 
 /**
@@ -67,7 +68,7 @@ public class NtNode<T> {
         this.isAHC = original.isAHC;
         this.postLen = original.postLen;
         this.ba = Bits.arrayClone(original.ba);
-        this.kdKeys = Longs.arrayClone(original.kdKeys);
+        this.kdKeys = RefsLong.arrayClone(original.kdKeys);
     }
 
 	private NtNode() {
@@ -106,13 +107,13 @@ public class NtNode<T> {
 		this.isAHC = false;
 		int size = calcArraySizeTotalBits(2, MAX_DIM);
 		this.ba = Bits.arrayCreate(size);
-		this.kdKeys = Longs.arrayCreate(calcArraySizeTotalLongs(2, MAX_DIM, keyBitWidth));
+		this.kdKeys = RefsLong.arrayCreate(calcArraySizeTotalLongs(2, MAX_DIM, keyBitWidth));
 		this.values = Refs.arrayCreate(2);
 	}
 	
 	void discardNode() {
 		Bits.arrayReplace(ba, null);
-		Longs.arrayReplace(kdKeys, null);
+		RefsLong.arrayReplace(kdKeys, null);
 		Refs.arrayReplace(values, null);
 		NtNodePool.offer(this);
 	}
@@ -316,7 +317,7 @@ public class NtNode<T> {
 	 * @return The sub node or null.
 	 */
 	Object getEntryByPIN(int posInNode, long[] outKey) {
-		Longs.readArray(kdKeys, pinToKdPos(posInNode, outKey.length), outKey);
+	  RefsLong.readArray(kdKeys, pinToKdPos(posInNode, outKey.length), outKey);
 		return values[posInNode];
 	}
 
@@ -326,7 +327,7 @@ public class NtNode<T> {
 	 * @param outKey Result container.
 	 */
 	void getKdKeyByPIN(int posInNode, long[] outKey) {
-		Longs.readArray(kdKeys, pinToKdPos(posInNode, outKey.length), outKey);
+	  RefsLong.readArray(kdKeys, pinToKdPos(posInNode, outKey.length), outKey);
 	}
 
 
@@ -345,25 +346,7 @@ public class NtNode<T> {
 		//+DIM because every index entry needs DIM bits
 		long sizeLHC = (dims * postLen + IK_WIDTH(dims) + REF_BITS + KD_WIDTH(kdDims)) 
 				* (long)entryCount;
-		//TODO
-		//TODO
-		//TODO
-		//TODO
-		//TODO
-		//TODO
-		//TODO
-		//TODO
-		//TODO
-		//TODO
-		//TODO
-		//TODO
-		//TODO
-		//TODO
-		//TODO
-		//TODO
-		//TODO
-		//TODO
-		//TODO  1.5
+		//use 1.5 as bias
 		return NodeTreeV11.AHC_ENABLED && (dims<=31) && (sizeLHC*1.5 >= sizeAHC);
 	}
 
@@ -384,13 +367,13 @@ public class NtNode<T> {
 	 */
 	Object replaceEntry(int pin, long[] kdKey, Object val) {
 		Object ret = values[pin];
-		Longs.writeArray(kdKey, kdKeys, pinToKdPos(pin, kdKey.length), kdKey.length);
+		RefsLong.writeArray(kdKey, kdKeys, pinToKdPos(pin, kdKey.length));
 		values[pin] = val;
 		return ret;
 	}
 
 	void readKdKeyPIN(int pin, long[] outKdKey) {
-		Longs.readArray(kdKeys, pin*outKdKey.length, outKdKey);
+	  RefsLong.readArray(kdKeys, pin*outKdKey.length, outKdKey);
 	}
 	
 	boolean readKdKeyAndCheck(int pin, long[] keyToMatch, long mask) {
@@ -408,7 +391,8 @@ public class NtNode<T> {
 		int posOfData = posToOffsBitsDataAHC(0, posOfIndex, dims);
 		setAHC( true );
 		long[] bia2 = Bits.arrayCreate(calcArraySizeTotalBits(oldEntryCount+1, dims));
-		long[] kdKeys2 = Longs.arrayCreate(calcArraySizeTotalLongs(oldEntryCount+1, dims, kdDims));
+		long[] kdKeys2 = 
+		    RefsLong.arrayCreate(calcArraySizeTotalLongs(oldEntryCount+1, dims, kdDims));
 		Object [] v2 = Refs.arrayCreate(1<<dims);
 		//Copy only bits that are relevant. Otherwise we might mess up the not-null table!
 		Bits.copyBitsLeft(ba, 0, bia2, 0, posOfIndex);
@@ -421,11 +405,11 @@ public class NtNode<T> {
 					postLenTotal);
 			int kdPos1 = posToKdPosLHC(i, kdDims);
 			int kdPos2 = posToKdPosAHC(p2, kdDims);
-			Longs.writeArray(kdKeys, kdPos1, kdKeys2, kdPos2, kdDims);
+			RefsLong.writeArray(kdKeys, kdPos1, kdKeys2, kdPos2, kdDims);
 			v2[p2] = values[i];
 		}
 		ba = Bits.arrayReplace(ba, bia2);
-		kdKeys = Longs.arrayReplace(kdKeys, kdKeys2);
+		kdKeys = RefsLong.arrayReplace(kdKeys, kdKeys2);
 		values = Refs.arrayReplace(values, v2);
 	}
 	
@@ -435,7 +419,7 @@ public class NtNode<T> {
 		Object oldEntry = null;
 		setAHC( false );
 		long[] bia2 = Bits.arrayCreate(calcArraySizeTotalBits(oldEntryCount-1, dims));
-		long[] kdKeys2 = Longs.arrayCreate(calcArraySizeTotalLongs(oldEntryCount-1, dims, kdDims));
+		long[] kdKeys2 = RefsLong.arrayCreate(calcArraySizeTotalLongs(oldEntryCount-1, dims, kdDims));
 		Object[] v2 = Refs.arrayCreate(oldEntryCount-1);
 		int oldOffsIndex = getBitPosIndex();
 		int oldOffsData = oldOffsIndex + (1<<dims)*INN_HC_WIDTH;
@@ -459,12 +443,12 @@ public class NtNode<T> {
 						postLenTotal);
 				int kdPos1 = posToKdPosAHC(i, kdDims);
 				int kdPos2 = posToKdPosLHC(n, kdDims);
-				Longs.writeArray(kdKeys, kdPos1, kdKeys2, kdPos2, kdDims);
+				RefsLong.writeArray(kdKeys, kdPos1, kdKeys2, kdPos2, kdDims);
 				n++;
 			}
 		}
 		ba = Bits.arrayReplace(ba, bia2);
-		kdKeys = Longs.arrayReplace(kdKeys, kdKeys2);
+		kdKeys = RefsLong.arrayReplace(kdKeys, kdKeys2);
 		values = Refs.arrayReplace(values, v2);
 		return oldEntry;
 	}
@@ -498,7 +482,7 @@ public class NtNode<T> {
 			int offsPostKey = posToOffsBitsDataAHC(hcPos, offsIndex, dims);
 			Bits.writeArray(ba, offsPostKey, postLen*dims, key);
 			int kdPos = posToKdPosAHC(hcPos, kdDims);
-			Longs.writeArray(kdKey, kdKeys, kdPos, kdDims);
+			RefsLong.writeArray(kdKey, kdKeys, kdPos);
 			values[(int) hcPos] = value;
 		} else {
 			//get position
@@ -513,12 +497,12 @@ public class NtNode<T> {
 			Bits.writeArray(ia, offs, IK_WIDTH(dims), hcPos);
 			//insert kdKey
 			int kdPos = posToKdPosLHC(pin, kdDims);
-			kdKeys = Longs.insertArray(kdKeys, kdKey, kdPos, kdDims);
+			kdKeys = RefsLong.insertArray(kdKeys, kdKey, kdPos);
 			//insert value:
 			offs += IK_WIDTH(dims);
 			Bits.writeArray(ia, offs, postLen*dims, key);
-			values = Refs.arrayEnsureSize(values, bufEntryCnt+1);
-			Refs.insertAtPos(values, pin, value);
+      values = Refs.insertSpaceAtPos(values, pin, bufEntryCnt+1);
+      values[pin] = value;
 		}
 	}
 
@@ -560,11 +544,10 @@ public class NtNode<T> {
 			ba = Bits.arrayTrim(ba, calcArraySizeTotalBits(bufEntryCnt-1, dims));
 			//values:
 			oldVal = values[posInNode]; 
-			Refs.removeAtPos(values, posInNode);
+      values = Refs.removeSpaceAtPos(values, posInNode, bufEntryCnt-1);
 			//kdKey
 			int kdPos = posToKdPosLHC(posInNode, kdDims);
-			kdKeys = Longs.arrayRemove(kdKeys, kdPos, kdDims);
-			values = Refs.arrayTrim(values, bufEntryCnt-1);
+			kdKeys = RefsLong.arrayRemove(kdKeys, kdPos, kdDims);
 		}
 
 		decEntryCount();

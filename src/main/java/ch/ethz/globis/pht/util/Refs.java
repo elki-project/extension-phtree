@@ -23,6 +23,9 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
 import java.util.Arrays;
 
 import ch.ethz.globis.pht.PhTreeHelper;
@@ -120,6 +123,11 @@ public class Refs {
     	return newA;
     }
     
+    /**
+     * Create an array.
+     * @param size
+     * @return a new array
+     */
     @SuppressWarnings("unchecked")
 	public static <T> T[] arrayCreate(int size) {
     	return (T[]) POOL.getArray(calcArraySize(size));
@@ -131,6 +139,7 @@ public class Refs {
      * @param requiredSize
      * @return Same array or expanded array.
      */
+    @Deprecated
     public static <T> T[] arrayEnsureSize(T[] oldA, int requiredSize) {
     	if (isCapacitySufficient(oldA, requiredSize)) {
     		return oldA;
@@ -151,16 +160,22 @@ public class Refs {
     	return newA;
     }
     
+	/**
+	 * Clones an array.
+	 * @param oldA
+	 * @return a copy or the input array
+	 */
     public static <T> T[] arrayClone(T[] oldA) {
     	T[] newA = arrayCreate(oldA.length);
     	System.arraycopy(oldA, 0, newA, 0, oldA.length);
     	return newA;
     }
     
-    public static <T> boolean isCapacitySufficient(T[] a, int requiredSize) {
+    private static <T> boolean isCapacitySufficient(T[] a, int requiredSize) {
     	return a.length >= requiredSize;
     }
     
+    @Deprecated
     @SuppressWarnings("unchecked")
 	public static <T> T[] arrayTrim(T[] oldA, int requiredSize) {
     	int reqSize = calcArraySize(requiredSize);
@@ -179,6 +194,15 @@ public class Refs {
     values[pos] = value;
   }
   
+	/**
+	 * Inserts an empty field at position 'pos'. If the required size is larger than the current
+	 * size, the array is copied to a new array. The new array is returned and the old array is
+	 * given to the pool.
+	 * @param values
+	 * @param pos
+	 * @param requiredSize
+	 * @return the modified array
+	 */
   public static <T> T[] insertSpaceAtPos(T[] values, int pos, int requiredSize) {
       T[] dst = values;
     if (requiredSize > values.length) {
@@ -196,6 +220,15 @@ public class Refs {
     }
   }
   
+	/**
+	 * Removes a field at position 'pos'. If the required size is smaller than the current
+	 * size, the array is copied to a new array. The new array is returned and the old array is
+	 * given to the pool.
+	 * @param values
+	 * @param pos
+	 * @param requiredSize
+	 * @return the modified array
+	 */
   @SuppressWarnings("unchecked")
   public static <T> T[] removeSpaceAtPos(T[] values, int pos, int requiredSize) {
       int reqSize = calcArraySize(requiredSize);
@@ -207,7 +240,8 @@ public class Refs {
     copyLeft(values, pos+1, dst, pos, requiredSize-pos);
     return dst;
   }
-	public static <T> void copyLeft(T[] src, int srcPos, T[] dst, int dstPos, int len) {
+	
+	private static <T> void copyLeft(T[] src, int srcPos, T[] dst, int dstPos, int len) {
 		if (len >= 7) {
 			System.arraycopy(src, srcPos, dst, dstPos, len);
 		} else {
@@ -217,7 +251,7 @@ public class Refs {
 		}
 	}
 	
-	public static <T> void copyRight(T[] src, int srcPos, T[] dst, int dstPos, int len) {
+	private static <T> void copyRight(T[] src, int srcPos, T[] dst, int dstPos, int len) {
 		if (len >= 7) {
 			System.arraycopy(src, srcPos, dst, dstPos, len);
 		} else {
@@ -226,4 +260,38 @@ public class Refs {
 			}
 		}
 	}
+
+	/**
+	 * Writes an object array to a stream.
+	 * @param a
+	 * @param out
+	 * @throws IOException
+	 */
+	public static <T> void write(T[] a, ObjectOutput out) throws IOException {
+		out.writeInt(a.length);
+		for (int i = 0; i < a.length; i++) {
+			out.writeObject(a[i]);
+		}
+	}
+
+	/**
+	 * Reads an object array from a stream.
+	 * @param in
+	 * @return the long array.
+	 * @throws IOException 
+	 */
+	@SuppressWarnings("unchecked")
+	public static <T> T[] read(ObjectInput in) throws IOException {
+		int size = in.readInt();
+		T[] ret = (T[]) POOL.getArray(size);
+		try {
+			for (int i = 0; i < size; i++) {
+				ret[i] = (T) in.readObject();
+			}
+		} catch (ClassNotFoundException e) {
+			throw new IllegalStateException(e);
+		}
+		return ret;
+	}
+	
 }
