@@ -23,25 +23,20 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import ch.ethz.globis.pht.v11.nt.NodeTreeV11;
+import ch.ethz.globis.pht.v12.nt.NodeTreeV12;
 
 public class MaxKTree64<T> implements MaxKTreeI {
 
 	private final long[] dummy;
-	private final NodeTreeV11<T> tree;
-	
-	private MaxKTree64() {
-		this.tree = NodeTreeV11.create(64);
-		this.dummy = new long[getKeyBitWidth()];
-	}
+	private final NodeTree64<T> tree;
 	
 	private MaxKTree64(int keyWidth) {
-		this.tree = NodeTreeV11.create(keyWidth);
+		this.tree = NodeTreeV12.create(keyWidth);
 		this.dummy = new long[getKeyBitWidth()];
 	}
 	
 	public static <T> MaxKTree64<T> create() {
-		return new MaxKTree64<>();
+		return create(64);
 	}
 	
 	public static <T> MaxKTree64<T> create(int keyWidth) {

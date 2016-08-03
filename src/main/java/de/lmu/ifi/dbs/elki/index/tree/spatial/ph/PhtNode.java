@@ -39,7 +39,7 @@ public class PhtNode extends AbstractExternalizablePage implements Node<PhtEntry
   private int numEntries;
  
   @Override
-  public Enumeration<IndexTreePath<PhtEntry>> children(IndexTreePath<PhtEntry> parentPath) {
+  public Enumeration<IndexTreePath<PhtEntry>> children(final IndexTreePath<PhtEntry> parentPath) {
     return new Enumeration<IndexTreePath<PhtEntry>>() {
       int count = 0;
 
