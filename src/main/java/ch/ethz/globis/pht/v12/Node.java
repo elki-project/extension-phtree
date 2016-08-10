@@ -150,7 +150,7 @@ public class Node implements Externalizable {
         }
     }
 
-	static Node createEmpty() {
+	public static Node createEmpty() {
 		return new Node();
 	}
 

@@ -48,7 +48,7 @@ public class NtNodePool {
 		return POOL[--poolSize];
 	}
 
-	static synchronized void offer(NtNode<?> node) {
+	public static synchronized void offer(NtNode<?> node) {
 		activeNodes--;
 		if (poolSize < POOL.length) {
 			POOL[poolSize++] = node;

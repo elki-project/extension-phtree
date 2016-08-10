@@ -22,6 +22,9 @@ package de.lmu.ifi.dbs.elki.index.tree.spatial.ph;
  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
 import java.util.Enumeration;
 import java.util.NoSuchElementException;
 
@@ -29,65 +32,80 @@ import de.lmu.ifi.dbs.elki.index.tree.AbstractNode;
 import de.lmu.ifi.dbs.elki.index.tree.IndexTreePath;
 import de.lmu.ifi.dbs.elki.index.tree.Node;
 import de.lmu.ifi.dbs.elki.persistent.AbstractExternalizablePage;
+import de.lmu.ifi.dbs.elki.persistent.Page;
 
-public class PhtNode extends AbstractExternalizablePage implements Node<PhtEntry> {
+public class PhtNode extends AbstractExternalizablePage implements Page {
 
-  private ch.ethz.globis.pht.v11.Node node;
+  private ch.ethz.globis.pht.v12.Node node;
   /**
    * The number of entries in this node.
    */
   private int numEntries;
  
+//  @Override
+//  public Enumeration<IndexTreePath<PhtEntry>> children(final IndexTreePath<PhtEntry> parentPath) {
+//    return new Enumeration<IndexTreePath<PhtEntry>>() {
+//      int count = 0;
+//
+//      @Override
+//      public boolean hasMoreElements() {
+//        return count < numEntries;
+//      }
+//
+//      @Override
+//      public IndexTreePath<PhtEntry> nextElement() {
+//        synchronized(PhtNode.this) {
+//          if(count < numEntries) {
+//            return new IndexTreePath<>(parentPath, entries[count], count++);
+//          }
+//        }
+//        throw new NoSuchElementException();
+//      }
+//    };
+//  }
+
+//  @Override
+//  public int getNumEntries() {
+//    return node.getEntryCount();
+//  }
+//
+//  @Override
+//  public boolean isLeaf() {
+//    return false;
+//  }
+//
+//  @Override
+//  public PhtEntry getEntry(int index) {
+//    // TODO Auto-generated method stub
+//    throw new UnsupportedOperationException();
+//    //return null;
+//  }
+//
+//  @Override
+//  public int addLeafEntry(PhtEntry entry) {
+//    // TODO Auto-generated method stub
+//    throw new UnsupportedOperationException();
+////   return 0;
+//  }
+//
+//  @Override
+//  public int addDirectoryEntry(PhtEntry entry) {
+//    // TODO Auto-generated method stub
+//    throw new UnsupportedOperationException();
+////    return 0;
+//  }
+  
   @Override
-  public Enumeration<IndexTreePath<PhtEntry>> children(final IndexTreePath<PhtEntry> parentPath) {
-    return new Enumeration<IndexTreePath<PhtEntry>>() {
-      int count = 0;
-
-      @Override
-      public boolean hasMoreElements() {
-        return count < numEntries;
-      }
-
-      @Override
-      public IndexTreePath<PhtEntry> nextElement() {
-        synchronized(PhtNode.this) {
-          if(count < numEntries) {
-            return new IndexTreePath<>(parentPath, entries[count], count++);
-          }
-        }
-        throw new NoSuchElementException();
-      }
-    };
+  public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+    super.readExternal(in);
+    node = ch.ethz.globis.pht.v12.Node.createEmpty();
+    node.readExternal(in);
   }
-
+  
   @Override
-  public int getNumEntries() {
-    return node.getEntryCount();
+  public void writeExternal(ObjectOutput out) throws IOException {
+    super.writeExternal(out);
+    node.writeExternal(out);
   }
-
-  @Override
-  public boolean isLeaf() {
-    return false;
-  }
-
-  @Override
-  public PhtEntry getEntry(int index) {
-    // TODO Auto-generated method stub
-    throw new UnsupportedOperationException();
-    //return null;
-  }
-
-  @Override
-  public int addLeafEntry(PhtEntry entry) {
-    // TODO Auto-generated method stub
-    throw new UnsupportedOperationException();
-//   return 0;
-  }
-
-  @Override
-  public int addDirectoryEntry(PhtEntry entry) {
-    // TODO Auto-generated method stub
-    throw new UnsupportedOperationException();
-//    return 0;
-  }
+  
 }

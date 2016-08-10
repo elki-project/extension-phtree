@@ -1,5 +1,9 @@
 package de.lmu.ifi.dbs.elki.index.tree.spatial.ph;
 
+import java.io.Externalizable;
+
+import ch.ethz.globis.pht.PersistenceProvider;
+
 /*
 This file is part of ELKI:
 Environment for Developing KDD-Applications Supported by Index-Structures
@@ -372,4 +376,45 @@ public class PhtTree<O extends NumberVector> extends IndexTree<PhtNode, PhtEntry
     throw new UnsupportedOperationException();
     //return null;
   }
+  
+  private class PersELKI implements PersistenceProvider {
+
+    @Override
+    public Object resolveObject(Object o) {
+      // TODO Auto-generated method stub
+      return null;
+    }
+
+    @Override
+    public Object storeObject(Externalizable o) {
+      // TODO Auto-generated method stub
+      return null;
+    }
+
+    @Override
+    public String getDescription() {
+      // TODO Auto-generated method stub
+      return null;
+    }
+
+    @Override
+    public int statsGetPageReads() {
+      // TODO Auto-generated method stub
+      return 0;
+    }
+
+    @Override
+    public int statsGetPageWrites() {
+      // TODO Auto-generated method stub
+      return 0;
+    }
+
+    @Override
+    public void statsReset() {
+      // TODO Auto-generated method stub
+      
+    }
+    
+  }
+  
 }
