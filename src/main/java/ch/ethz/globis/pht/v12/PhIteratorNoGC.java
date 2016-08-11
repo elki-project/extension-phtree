@@ -125,7 +125,7 @@ public final class PhIteratorNoGC<T> implements PhQuery<T> {
 			NodeIteratorNoGC<T> p = stack.peek();
 			while (p.increment(result)) {
 				if (result.node != null) {
-					p = stack.prepareAndPush((Node) pp.resolveObject(result.node));
+					p = stack.prepareAndPush((Node) pp.loadNode(result.node));
 					continue;
 				} else {
 					resultFree = resultToReturn;

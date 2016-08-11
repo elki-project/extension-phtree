@@ -28,6 +28,7 @@ public class PhTreeConfig {
 	private int dimUser;
 	private int dimActual;
 	private boolean[] unique; 
+	private PersistenceProvider persProvider = PersistenceProvider.NONE;
 	
 	public PhTreeConfig(int dim) {
 		this.dimUser = dim;
@@ -74,5 +75,13 @@ public class PhTreeConfig {
 			}
 		}
 		return ret;
+	}
+
+	public void setPersistenceProvider(PersistenceProvider persProvider) {
+		this.persProvider = persProvider;
+	}
+	
+	public PersistenceProvider getPersistenceProvider() {
+		return persProvider;
 	}
 }

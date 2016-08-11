@@ -33,8 +33,11 @@ import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 
+import ch.ethz.globis.pht.PersistenceProvider;
 import ch.ethz.globis.pht.util.Refs;
 import ch.ethz.globis.pht.util.RefsByte;
+import ch.ethz.globis.pht.util.RefsLong;
+import ch.ethz.globis.pht.v12.Node;
 
 
 /**
@@ -799,7 +802,8 @@ public class NtNode<T> implements Externalizable {
 		out.writeBoolean(isAHC);
 		RefsLong.write(ba, out);
 		RefsLong.write(kdKeys, out);
-		Refs.write(values, out);
+		//Refs.write(values, out);
+		PersistenceProvider.write(values, out);
 		RefsByte.write(kdSubCodes, out);
 		RefsByte.write(ntSubCodes, out);
 	}
@@ -812,7 +816,8 @@ public class NtNode<T> implements Externalizable {
 		ba = RefsLong.read(in);
 		kdKeys = RefsLong.read(in);
 		//TODO uses non-Object read!!!!
-		values = Refs.read(in);
+		//values = Refs.read(in);
+		values = PersistenceProvider.read(in);
 		kdSubCodes = RefsByte.read(in);
 		ntSubCodes = RefsByte.read(in);
 	}

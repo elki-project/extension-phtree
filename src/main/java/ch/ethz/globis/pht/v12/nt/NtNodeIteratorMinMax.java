@@ -132,7 +132,7 @@ public class NtNodeIteratorMinMax<T> {
 			if (prefix < (globalMin & mask) || (prefix & mask) > globalMax) {
 				return false;
 			}
-			nextSubNode = (NtNode<T>) pp.resolveObject(node.getValueByPIN(pin));
+			nextSubNode = (NtNode<T>) pp.loadNode(node.getValueByPIN(pin));
 		} else {
 			if (prefix < globalMin || prefix > globalMax) {
 				return false;

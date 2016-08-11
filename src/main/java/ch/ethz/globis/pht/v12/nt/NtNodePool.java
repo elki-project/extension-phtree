@@ -40,7 +40,7 @@ public class NtNodePool {
 		// empty
 	}
 
-	static synchronized NtNode<?> getNode() {
+	public static synchronized NtNode<?> getNode() {
 		activeNodes++;
 		if (poolSize == 0) {
 			return NtNode.createEmptyNode();
@@ -48,7 +48,7 @@ public class NtNodePool {
 		return POOL[--poolSize];
 	}
 
-	static synchronized void offer(NtNode<?> node) {
+	public static synchronized void offer(NtNode<?> node) {
 		activeNodes--;
 		if (poolSize < POOL.length) {
 			POOL[poolSize++] = node;

@@ -223,7 +223,7 @@ public class PhQueryKnnMbbPPList<T> implements PhKnnQuery<T> {
 		while (ni.increment(result)) {
 			if (result.node != null) {
 				//traverse sub node
-				ni.init((Node) pp.resolveObject(result.node), null);
+				ni.init((Node) pp.loadNode(result.node), null);
 			} else {
 				//Never return closest key if we look for nMin>1 keys!
 				if (nMin > 1 && Arrays.equals(key, result.getKey())) {

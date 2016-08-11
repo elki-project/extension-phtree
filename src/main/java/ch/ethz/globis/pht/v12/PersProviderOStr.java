@@ -26,32 +26,92 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectInput;
+import java.io.ObjectInputStream;
 import java.io.ObjectOutput;
 import java.io.ObjectOutputStream;
 import java.io.OutputStream;
+import java.util.IdentityHashMap;
 
 import ch.ethz.globis.pht.PersistenceProvider;
+import ch.ethz.globis.pht.PhTree;
 
-public class PersProviderOStr implements PersistenceProvider {
+public class PersProviderOStr extends PersistenceProvider {
+	
+	private int idCnt = 0;
+	private static final boolean LOG = true;
+	
+	private int dims = -1;
+	private int nEntries = -1;
+	private Object rootId = null;
+	
+	private IdentityHashMap<Externalizable, Integer> idMap = new IdentityHashMap<>();
+	
+	//pageId -> page
+	//private IdentityHashMap<Integer, byte[]> database = new IdentityHashMap<>();
+	private IdentityHashMap<Integer, Externalizable> database = new IdentityHashMap<>();
 	
 	private int nPageRead;
 	private int nPageWrite;
+	private ObjectOutputStream out;
+	private ObjectInputStream in;
+	
+//	public PersProviderOStr(ObjectInputStream in, ObjectOutputStream out) {
+//		// TODO Auto-generated constructor stub
+//	}
+	
+	public PersProviderOStr() {
+//		ByteArrayOutputStream baos = new ByteArrayOutputStream();
+//		ObjectOutputStream out = new ObjectOutputStream(baos);
+//		//out.writeObject(tree);
+//		PhTree12.writeExternal(out, (PhTree12) tree);
+//		ByteArrayInputStream bais = new ByteArrayInputStream(baos.toByteArray());
+//
+//		System.out.println("Bytes written: " + baos.size() +  "   nodes="+tree.getStats().nNodes);
+//		
+//		ObjectInputStream in = new ObjectInputStream(bais);
+	}
 	
 	@Override
-	public Object resolveObject(Object o) {
+	public Object loadNode(Object o) {
 		nPageRead++;
-		return ((NodeID)o).resolve();
+//		byte[] objMap.get((NodeID)o);
+//		ObjectIn
+		//return ((NodeID)o).resolve();
+//		ByteArrayInputStream bais = new ByteArrayInputStream(buf);
+//		bais.
+		Object ret = database.get((Integer)o);
+		log("get id=", o, "o=", ret);
+		return ret;
 	}
 
 	@Override
-	public Object storeObject(Externalizable o) {
+	public Object registerNode(Externalizable o) {
 		nPageWrite++;
-		return new NodeID(o);
+		Object id = idMap.get(o);
+		if (id != null) {
+			throw new IllegalArgumentException();
+		}
+		id = ++idCnt;
+		idMap.put(o, (Integer)id);
+		database.put((Integer)id, o);
+		log("alloc id=", id, "o=", o);
+		return id;
+	}
+	
+	@Override
+	public void updateNode(Externalizable o) {
+		nPageWrite++;
+		Object id = idMap.get(o);
+		if (id != null) {
+			throw new IllegalArgumentException();
+		}
+		database.put((Integer)id, o);
+		log("update id=", id, "o=", o);
 	}
 
 	@Override
 	public String getDescription() {
-		return "SIMPLE";
+		return "OBJ-STR";
 	}
 
 	@Override
@@ -70,6 +130,12 @@ public class PersProviderOStr implements PersistenceProvider {
 		nPageWrite = 0;
 	}
 
+	@Override
+	public String toString() {
+		return "nPageRead=" + nPageRead + 
+				"  nPageWrite=" + nPageWrite;
+	}
+	
 	private static class NodeID implements Externalizable {
 		private Externalizable node;
 		private long id;
@@ -117,5 +183,39 @@ public class PersProviderOStr implements PersistenceProvider {
 			out.write(b);
 		}
 		
+	}
+	
+	private void log(Object ...strings) {
+		if (LOG) {
+			StringBuilder sb = new StringBuilder();
+			for (Object s: strings) {
+				sb.append(s);
+				sb.append(" ");
+			}
+			System.out.println(sb.toString());
+		}
+	}
+
+	@Override
+	public void writeTree(PhTree<?> tree, int dims) {
+		this.dims = dims;
+		this.nEntries = 0;
+	}
+
+	@Override
+	public void updateTree(PhTree<?> tree, int dims, int nEntries, Object rootId) {
+		this.dims = dims;
+		this.nEntries = nEntries;
+		this.rootId = rootId;
+	}
+
+	@Override
+	public <T> PhTree<T> loadTree() {
+		return new PhTree12<>(dims, nEntries, rootId, this);
+	}
+
+	@Override
+	public void flush() {
+		// 
 	}
 }

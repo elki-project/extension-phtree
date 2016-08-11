@@ -42,6 +42,7 @@ import ch.ethz.globis.pht.v12.nt.NodeTreeV12.NtEntry12;
 import ch.ethz.globis.pht.v12.nt.NtIteratorMask;
 import ch.ethz.globis.pht.v12.nt.NtIteratorMinMax;
 import ch.ethz.globis.pht.v12.nt.NtNode;
+import ch.ethz.globis.pht.v12.nt.NtNodePool;
 import ch.ethz.globis.pht64kd.MaxKTreeI.NtEntry;
 import ch.ethz.globis.pht64kd.MaxKTreeI.PhIterator64;
 
@@ -107,6 +108,8 @@ public class Node implements Externalizable {
 	private byte postLen = 0;
 
 	//Nested tree index
+	//This NtNode is NOT stored as persistent ID because we serialize it together with the
+	//current Node
 	private NtNode<Object> ind = null;
 
 	
@@ -180,9 +183,13 @@ public class Node implements Externalizable {
 	}
 	
 	void discardNode() {
+		if (ind == null) {
 		Bits.arrayReplace(ba, null);
 		Refs.arrayReplace(values, null);
 		RefsByte.arrayReplace(subCodes, null);
+		} else {
+			ind = null;
+		}
 		entryCnt = 0;
 		NodePool.offer(this);
 	}
@@ -275,7 +282,7 @@ public class Node implements Externalizable {
 				long mask = calcInfixMaskFromSC(subCode);
 				return insertSplit(keyToMatch, newValueToInsert, subCode, pin, hcPos, tree, mask);
 			}
-			return tree.getPersistenceProvider().resolveObject(getValue(pin));
+			return tree.getPersistenceProvider().loadNode(getValue(pin));
 		} else {
 			if (postLen > 0) {
 				long mask = calcPostfixMask();
@@ -366,7 +373,7 @@ public class Node implements Externalizable {
 					return null;
 				}
 			}
-			return tree.getPersistenceProvider().resolveObject(v);
+			return tree.getPersistenceProvider().loadNode(v);
 		} else {
 			final long mask = calcPostfixMask();
 			if (!readAndCheckKdKey(offs, keyToMatch, mask)) {
@@ -442,13 +449,13 @@ public class Node implements Externalizable {
 				setValue(pin, newValue, SUBCODE_KEY_VALUE);
 				return v;
 			} 
-			return tree.getPersistenceProvider().resolveObject(v);
+			return tree.getPersistenceProvider().loadNode(v);
 		}
 		
 		//subCode remains the same
 		Node newNode = createNode(newKey, SUBCODE_KEY_VALUE, newValue, 
 				buffer, subCode, getValue(pin), maxConflictingBits);
-		Object newNodeObj = tree.getPersistenceProvider().storeObject(newNode);
+		Object newNodeObj = tree.getPersistenceProvider().registerNode(newNode);
 
         //determine length of infix
         replaceEntryWithSub(pin, hcPos, newKey, calcSubCode(newNode), newNodeObj, false, 
@@ -601,6 +608,7 @@ public class Node implements Externalizable {
 					tree.getPersistenceProvider());
 		}
 
+		tree.getPersistenceProvider().updateNode(parent);
 		discardNode();
 		return valueToDelete;
 	}
@@ -640,6 +648,7 @@ public class Node implements Externalizable {
 			parent.replaceSubWithPost(pinInParent, posInParent, nte.getKdKey(), nte.getValue(), pp);
 		}
 
+		pp.updateNode(parent);
 		discardNode();
 	}
 
@@ -679,10 +688,10 @@ public class Node implements Externalizable {
 		if (isNT()) {
 			NodeEntry<?> e = new NodeEntry<>(postBuf, SUBCODE_EMPTY, null);
 			ntGetEntry(hcPos, e, pp);
-			return isSubNode(e.getSubCode()) ? pp.resolveObject(e.getValue()) : e.getValue();
+			return isSubNode(e.getSubCode()) ? pp.loadNode(e.getValue()) : e.getValue();
 		}
 		Object ret = getEntryByPIN(posInNode, hcPos, postBuf);
-		return isSubNode(getSubCode(posInNode)) ? pp.resolveObject(ret) : ret;
+		return isSubNode(getSubCode(posInNode)) ? pp.loadNode(ret) : ret;
 	}
 
 
@@ -1142,6 +1151,7 @@ public class Node implements Externalizable {
 			subCodes = RefsByte.arrayReplace(subCodes, sc2);
 		}			
 
+		NtNodePool.offer(ind);
 		ind = null;
 		return oldValue;
 	}
@@ -1558,10 +1568,11 @@ public class Node implements Externalizable {
 		boolean isNT = ind != null;
 		out.writeBoolean(isNT);
 		if (isNT) {
-			out.writeObject(ind);
+			ind.writeExternal(out);
 		} else {
 			RefsLong.write(ba, out);
-			Refs.write(values, out);
+			//Refs.write(values, out);
+			PersistenceProvider.write(values, out);
 			RefsByte.write(subCodes, out);
 		}
 	}
@@ -1574,11 +1585,13 @@ public class Node implements Externalizable {
 		boolean isNT = in.readBoolean();
 		if (isNT) {
 			//TODO uses non-Object read!!!!
-			ind = (NtNode<Object>) in.readObject();
+			ind = (NtNode<Object>) NtNodePool.getNode();
+			ind.readExternal(in);
 		} else {
 			ba = RefsLong.read(in);
 			//TODO uses non-Object read!!!!
-			values = Refs.read(in);
+			//values = Refs.read(in);
+			values = PersistenceProvider.read(in);
 			subCodes = RefsByte.read(in);
 		}
 	}

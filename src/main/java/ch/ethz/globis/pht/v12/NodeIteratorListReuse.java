@@ -136,7 +136,7 @@ public class NodeIteratorListReuse<T, R> {
 
 		private void checkAndRunSubnode(byte subCode, Object sub) {
 			if (results.phIsPrefixValid(valTemplate, subCode+1)) {
-				run((Node) pp.resolveObject(sub));
+				run((Node) pp.loadNode(sub));
 			}
 		}
 

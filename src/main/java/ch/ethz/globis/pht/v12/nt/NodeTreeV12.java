@@ -100,8 +100,21 @@ public class NodeTreeV12<T> implements NodeTree64<T> {
 	@SuppressWarnings("unchecked")
 	public static <T> T addEntry(NtNode<T> root, long hcPos, 
 			long[] kdKey, byte kdSubCode, Object value, Node phNode, PersistenceProvider pp) {
+		Object o = root;
 		NtNode<T> currentNode = root;
-		while (true) {
+		while (o instanceof NtNode) {
+			currentNode = (NtNode<T>) o;
+			o = addEntryInner(currentNode, hcPos, kdKey, kdSubCode, value, phNode, pp);
+		}
+		//The root node is persisted as part of the parent node.
+		if (currentNode != root) {
+			pp.updateNode(currentNode);
+		}
+		return (T)o;
+	}
+	
+	private static <T> Object addEntryInner(NtNode<T> currentNode, long hcPos, 
+	long[] kdKey, byte kdSubCode, Object value, Node phNode, PersistenceProvider pp) {
 			long localHcPos = NtNode.pos2LocalPos(hcPos, currentNode.getPostLen());
 			int pin = currentNode.getPosition(localHcPos, NtNode.MAX_DIM);
 			if (pin < 0) {
@@ -155,6 +168,7 @@ public class NodeTreeV12<T> implements NodeTree64<T> {
 				//traverse subNode
 				Object localVal = currentNode.getValueByPIN(pin);
 				currentNode = resolve(pp, localVal);
+			return currentNode;
 			} else {
 				//identical internal postFixes.
 				
@@ -178,7 +192,7 @@ public class NodeTreeV12<T> implements NodeTree64<T> {
 									mask, localKdSubCode, currentNode, phNode, pp);
 						}
 						T ret = (T) currentNode.getValueByPIN(pin);
-						return (T) pp.resolveObject(ret); 
+					return (T) pp.loadNode(ret); 
 					} else {
 						if (phNode.getPostLen() > 0) {
 							long mask = phNode.calcPostfixMask();
@@ -193,7 +207,6 @@ public class NodeTreeV12<T> implements NodeTree64<T> {
 				}
 			}
 		}
-	}
 	
 	/**
 	 * Increases the entry count of the NtTree. For PhTree nodes,
@@ -214,7 +227,7 @@ public class NodeTreeV12<T> implements NodeTree64<T> {
 		int maxConflictingBits = Node.calcConflictingBits(newKey, localKdKey, mask);
 		if (maxConflictingBits == 0) {
 			if (Node.isSubNode(currentKdSubCode)) {
-				return pp.resolveObject(currentValue);
+				return pp.loadNode(currentValue);
 			}
 			currentNode.localReplaceValue(pin, 
 					Node.SUBCODE_KEY_VALUE, Node.SUBCODE_KEY_VALUE, newValue);
@@ -224,7 +237,7 @@ public class NodeTreeV12<T> implements NodeTree64<T> {
 		//subCode remains the same
 		Node newNode = phNode.createNode(newKey, Node.SUBCODE_KEY_VALUE, newValue, 
 						localKdKey, currentKdSubCode, currentValue, maxConflictingBits);
-		Object newNodeObj = pp.storeObject(newNode);
+		Object newNodeObj = pp.registerNode(newNode);
 
 		currentNode.localReplaceEntry(pin, newKey, Node.calcSubCode(newNode), 
 				Node.SUBCODE_KEY_VALUE, newNodeObj);
@@ -322,7 +335,7 @@ public class NodeTreeV12<T> implements NodeTree64<T> {
 					//compare kdKey!
 					if (Node.isSubNode(kdSubCode)) {
 						//This is a node, simply return it for further traversal
-						return pp.resolveObject(o);
+						return pp.loadNode(o);
 					}
 					
 					//Check for update()
@@ -380,12 +393,12 @@ public class NodeTreeV12<T> implements NodeTree64<T> {
 	@SuppressWarnings("unchecked")
 	private static <T> NtNode<T> resolve(PersistenceProvider pp, Object o) {
 		//return (NtNode<T>) ((pp == null) ? o : pp.resolveObject(o));
-		return (NtNode<T>) pp.resolveObject(o);
+		return (NtNode<T>) pp.loadNode(o);
 	}
 
 	private static Object store(PersistenceProvider pp, NtNode<?> o) {
 		//return (tree == null) ? o : tree.storeObject(o);
-		return pp.storeObject(o);
+		return pp.registerNode(o);
 	}
 
 	private static Object phGetIfKdMatches(long[] keyToMatch,
@@ -481,7 +494,7 @@ public class NodeTreeV12<T> implements NodeTree64<T> {
 				}
 				//In this case we have to resolve it, because the caller can otherwise not
 				//see whether it is a nod or not (we don't return the subCode)
-				return Node.isSubNode(kdSubCode) ? pp.resolveObject(localVal) : localVal;
+				return Node.isSubNode(kdSubCode) ? pp.loadNode(localVal) : localVal;
 			}
 		}
 	}
@@ -695,13 +708,13 @@ public class NodeTreeV12<T> implements NodeTree64<T> {
 			}
 			nNodeEntriesFound++;
 			if (NtNode.isNtSubNode(ntSubCode)) {
-				getStats((NtNode<?>) pp.resolveObject(data[i]), stats, dims, entryBuffer, 
+				getStats((NtNode<?>) pp.loadNode(data[i]), stats, dims, entryBuffer, 
 						currentDepth, pp);
 			} else {
 				//subnode entry or postfix entry
 				byte kdSubCode = node.getKdSubCode(i);
 				if (Node.isSubNode(kdSubCode)) {
-					entryBuffer.add((Node) pp.resolveObject(data[i]));
+					entryBuffer.add((Node) pp.loadNode(data[i]));
 				} else if (!Node.isSubEmpty(kdSubCode)) {
 					stats.q_nPostFixN[currentDepth]++;
 				}

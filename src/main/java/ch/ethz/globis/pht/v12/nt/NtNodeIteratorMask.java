@@ -145,7 +145,7 @@ public class NtNodeIteratorMask<T> {
 			if (((prefix | globalMinMask) & globalMaxMask & mask) != (prefix & mask)) {
 				return false;
 			}
-			nextSubNode = (NtNode<T>) store.resolveObject(node.getValueByPIN(pin));
+			nextSubNode = (NtNode<T>) store.loadNode(node.getValueByPIN(pin));
 		} else {
 			if (((prefix | globalMinMask) & globalMaxMask) != prefix) {
 				return false;

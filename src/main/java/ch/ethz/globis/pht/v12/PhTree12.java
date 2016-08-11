@@ -109,7 +109,7 @@ public class PhTree12<T> extends PhTree<T> {
 	
 	//Enable persistence mode, i.e. pages are converted to and from peristent identifiers
 	public static final boolean PERS_ENABLED = false;
-	public static final PersistenceProvider PP = 
+	private PersistenceProvider pp = 
 			PERS_ENABLED ? new PersProviderOStr() : PersistenceProvider.NONE;
 	
 	//This threshold is used to decide during query iteration whether the first value
@@ -126,6 +126,12 @@ public class PhTree12<T> extends PhTree<T> {
 
 	private final AtomicInteger nEntries = new AtomicInteger();
 	
+	private Object rootId = null;
+
+	
+	/**
+	 * @param <T>
+	 */
 	public static class NodeEntry<T> extends PhEntry<T> {
 		Object node;
 		byte subCode;
@@ -162,15 +168,8 @@ public class PhTree12<T> extends PhTree<T> {
 		}
 	}
 
-
-	private Node root = null;
-
 	Node getRoot() {
-		return root;
-	}
-
-    void changeRoot(Node newRoot) {
-        this.root = newRoot;
+		return (Node) pp.loadNode(rootId);
     }
 
 	public PhTree12(int dim) {
@@ -178,17 +177,28 @@ public class PhTree12<T> extends PhTree<T> {
 		debugCheck();
 	}
 
-	public PhTree12(PhTreeConfig cnf) {
-		dims = cnf.getDimActual();
+	public PhTree12(PhTreeConfig cfg) {
+		dims = cfg.getDimActual();
+		pp = cfg.getPersistenceProvider();
+		pp.writeTree(this, dims);
 		debugCheck();
 	}
 
+	public PhTree12(int dims, int nEntries, Object rootId, PersistenceProvider pp) {
+		this.dims = dims;
+		this.nEntries.set(nEntries);
+		this.rootId = rootId;
+		this.pp = pp;
+	}
+	
 	void increaseNrEntries() {
 		nEntries.incrementAndGet();
+		pp.updateTree(this, dims, nEntries.get(), rootId);
 	}
 
 	void decreaseNrEntries() {
 		nEntries.decrementAndGet();
+		pp.updateTree(this, dims, nEntries.get(), rootId);
 	}
 
 	@Override
@@ -223,14 +233,14 @@ public class PhTree12<T> extends PhTree<T> {
 			for (int i = 0; i < data.length; i++) {
 				byte subCode = node.getSubCode(i);
 				if (Node.isSubNode(subCode)) {
-					getStats(currentDepth + 1, (Node) PP.resolveObject(data[i]), stats);
+					getStats(currentDepth + 1, (Node) pp.loadNode(data[i]), stats);
 				} else if (!Node.isSubEmpty(subCode)) {
 					stats.q_nPostFixN[currentDepth]++;
 				}
 			}
 		} else {
 			List<Node> entries = new ArrayList<>();
-			int nEntries = NodeTreeV12.getStats(node.ind(), stats, dims, entries, currentDepth, PP);
+			int nEntries = NodeTreeV12.getStats(node.ind(), stats, dims, entries, currentDepth, pp);
 			for (Object child: entries) {
 				getStats(currentDepth + 1, (Node) child, stats);
 			}
@@ -249,20 +259,20 @@ public class PhTree12<T> extends PhTree<T> {
 		stats.size += node.values() != null ? 16 + align8(node.values().length * REF) : 0;
 		if (nChildren == 1 && (node != getRoot()) && nEntries.get() > 1) {
 			//This should not happen! Except for a root node if the tree has <2 entries.
-			System.err.println("WARNING: found lonely node...");
+			logErr("WARNING: found lonely node...");
 		}
 		if (nChildren == 0 && (node != getRoot())) {
 			//This should not happen! Except for a root node if the tree has <2 entries.
-			System.err.println("WARNING: found ZOMBIE node...");
+			logErr("WARNING: found ZOMBIE node...");
 		}
 		if (dims<=31 && node.getEntryCount() > (1L<<dims)) {
-			System.err.println("WARNING: Over-populated node found: ec=" + node.getEntryCount());
+			logErr("WARNING: Over-populated node found: ec=" + node.getEntryCount());
 		}
 		//check space
 		int baS = node.calcArraySizeTotalBits(node.getEntryCount(), dims);
 		baS = Bits.calcArraySize(baS);
 		if (baS < node.ba.length) {
-			System.err.println("Array too large: " + node.ba.length + " - " + baS + " = " + 
+			logErr("Array too large: " + node.ba.length + " - " + baS + " = " + 
 					(node.ba.length - baS));
 		}
 		stats.nTotalChildren += nChildren;
@@ -281,18 +291,21 @@ public class PhTree12<T> extends PhTree<T> {
 		}
 
 		Object o = getRoot();
-		while (o instanceof Node) {
 			Node currentNode = (Node) o;
+		while (o instanceof Node) {
+			currentNode = (Node) o;
 			o = currentNode.doInsertIfMatching(key, nonNullValue, this);
 		}
+		pp.updateNode(currentNode);
 		return (T) o;
     }
 
     void insertRoot(long[] key, Object value) {
-        root = Node.createNode(dims, DEPTH_64-1);
+        Node root = Node.createNode(dims, DEPTH_64-1);
         //calcPostfixes(valueSet, root, 0);
         long pos = posInArray(key, root.getPostLen());
         root.addPostPIN(pos, -1, key, value, getPersistenceProvider());
+        rootId = pp.registerNode(root);
         increaseNrEntries();
     }
 
@@ -329,12 +342,22 @@ public class PhTree12<T> extends PhTree<T> {
 	@Override
 	public T remove(long... key) {
 		Object o = getRoot();
+		Node currentNode = (Node) o;
 		Node parentNode = null;
 		while (o instanceof Node) {
-			Node currentNode = (Node) o;
+			currentNode = (Node) o;
 			o = currentNode.doIfMatching(key, false, parentNode, null, null, this);
 			parentNode = currentNode;
 		}
+		pp.updateNode(currentNode);
+		//TODO update parent node!!!
+		//TODO update parent node!!!
+		//TODO update parent node!!!
+		//TODO update parent node!!!
+		//TODO update parent node!!!
+		//TODO update parent node!!!
+		//TODO update parent node!!!
+		//TODO update parent node!!!
 		return (T) o;
 	}
 
@@ -388,7 +411,7 @@ public class PhTree12<T> extends PhTree<T> {
 				" HCI-on=" + HCI_ENABLED +  
 				" NtLimit=" + Node.NT_THRESHOLD +  
 				" NtMaxDim=" + NtNode.MAX_DIM +
-				" I/O=" + PP.getDescription() +
+				" I/O=" + pp.getDescription() +
 				" DEBUG=" + PhTreeHelper.DEBUG;
 	}
 
@@ -613,8 +636,9 @@ public class PhTree12<T> extends PhTree<T> {
 	 */
 	@Override
 	public void clear() {
-		root = null;
+		rootId = null;
 		nEntries.set(0);
+		pp.updateTree(this, dims, nEntries.get(), rootId);
 	}
 
 	void adjustCounts(int deletedPosts) {
@@ -646,7 +670,7 @@ public class PhTree12<T> extends PhTree<T> {
 	public static <T> void writeExternal(ObjectOutput out, PhTree12<T> tree) throws IOException {
 		out.writeInt(tree.nEntries.get());
 		out.writeInt(tree.dims);
-		out.writeObject(tree.root);
+		out.writeInt((Integer)tree.rootId);
 	}
 
 	public static <T> PhTree<T> readExternal(ObjectInput in) throws IOException, 
@@ -655,13 +679,17 @@ public class PhTree12<T> extends PhTree<T> {
 		int dims = in.readInt();
 		PhTree12<T> tree = new PhTree12<>(dims);
 		tree.nEntries.set(n);
-		tree.root = (Node) in.readObject();
+		tree.rootId = in.readInt();
 		return tree;
 	}
 	
 
 	public PersistenceProvider getPersistenceProvider() {
-		return PP;
+		return pp;
+	}
+	
+	private void logErr(String str) {
+		System.err.println(str);
 	}
 }
 

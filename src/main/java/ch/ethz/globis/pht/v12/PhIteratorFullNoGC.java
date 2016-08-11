@@ -122,7 +122,7 @@ public final class PhIteratorFullNoGC<T> implements PhExtent<T> {
 			NodeIteratorFullNoGC<T> p = stack.peek();
 			while (p.increment(result)) {
 				if (Node.isSubNode(result.getSubCode())) {
-					p = stack.prepareAndPush((Node) pp.resolveObject(result.node));
+					p = stack.prepareAndPush((Node) pp.loadNode(result.node));
 					continue;
 				} else {
 					resultFree = resultToReturn;
