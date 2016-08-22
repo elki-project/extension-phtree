@@ -36,7 +36,7 @@ import de.lmu.ifi.dbs.elki.persistent.Page;
 
 public class PhtNode extends AbstractExternalizablePage implements Page {
 
-  private ch.ethz.globis.pht.v12.Node node;
+  private ch.ethz.globis.phtree.v12.Node node;
   /**
    * The number of entries in this node.
    */
@@ -98,7 +98,7 @@ public class PhtNode extends AbstractExternalizablePage implements Page {
   @Override
   public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
     super.readExternal(in);
-    node = ch.ethz.globis.pht.v12.Node.createEmpty();
+    node = ch.ethz.globis.phtree.v12.Node.createEmpty();
     node.readExternal(in);
   }
   

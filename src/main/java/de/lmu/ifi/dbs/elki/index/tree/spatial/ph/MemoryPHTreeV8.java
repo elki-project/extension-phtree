@@ -1,31 +1,10 @@
 package de.lmu.ifi.dbs.elki.index.tree.spatial.ph;
 
-/*
-This file is part of ELKI:
-Environment for Developing KDD-Applications Supported by Index-Structures
-
-Copyright (C) 2014
-ETH Zurich, Switzerland and Tilmann Zaeschke
-
-This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU Affero General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU Affero General Public License for more details.
-
-You should have received a copy of the GNU Affero General Public License
-along with this program.  If not, see <http://www.gnu.org/licenses/>.
-*/
-
-import ch.ethz.globis.pht.PhTreeF;
-import ch.ethz.globis.pht.PhTreeF.PhEntryF;
-import ch.ethz.globis.pht.PhTreeF.PhKnnQueryF;
-import ch.ethz.globis.pht.PhTreeF.PhRangeQueryF;
-import ch.ethz.globis.pht.pre.IntegerPP;
+import ch.ethz.globis.phtree.PhTreeF;
+import ch.ethz.globis.phtree.PhTreeF.PhEntryF;
+import ch.ethz.globis.phtree.PhTreeF.PhKnnQueryF;
+import ch.ethz.globis.phtree.PhTreeF.PhRangeQueryF;
+import ch.ethz.globis.phtree.pre.IntegerPP;
 import de.lmu.ifi.dbs.elki.data.NumberVector;
 import de.lmu.ifi.dbs.elki.data.type.TypeInformation;
 import de.lmu.ifi.dbs.elki.data.type.TypeUtil;
