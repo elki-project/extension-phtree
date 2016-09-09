@@ -28,7 +28,6 @@ import java.util.NoSuchElementException;
 import ch.ethz.globis.phtree.PhEntry;
 import ch.ethz.globis.phtree.PhFilter;
 import ch.ethz.globis.phtree.PhTree.PhExtent;
-import ch.ethz.globis.phtree.v11.PhTree11.NodeEntry;
 
 /**
  * This PhIterator uses a loop instead of recursion in findNextElement();. 
@@ -40,7 +39,7 @@ import ch.ethz.globis.phtree.v11.PhTree11.NodeEntry;
  * 
  * @author ztilmann
  *
- * @param <T>
+ * @param <T> value type
  */
 public final class PhIteratorFullNoGC<T> implements PhExtent<T> {
 
@@ -83,8 +82,8 @@ public final class PhIteratorFullNoGC<T> implements PhExtent<T> {
 	private PhFilter checker;
 	private final PhTree11<T> pht;
 	
-	private NodeEntry<T> resultFree;
-	private NodeEntry<T> resultToReturn;
+	private PhEntry<T> resultFree;
+	private PhEntry<T> resultToReturn;
 	private boolean isFinished = false;
 	
 	public PhIteratorFullNoGC(PhTree11<T> pht, PhFilter checker) {
@@ -93,8 +92,8 @@ public final class PhIteratorFullNoGC<T> implements PhExtent<T> {
 		this.stack = new PhIteratorStack();
 		this.valTemplate = new long[dims];
 		this.pht = pht;
-		this.resultFree = new NodeEntry<>(new long[dims], null);
-		this.resultToReturn = new NodeEntry<>(new long[dims], null);
+		this.resultFree = new PhEntry<>(new long[dims], null);
+		this.resultToReturn = new PhEntry<>(new long[dims], null);
 	}	
 		
 	@Override
@@ -114,12 +113,12 @@ public final class PhIteratorFullNoGC<T> implements PhExtent<T> {
 	}
 
 	private void findNextElement() {
-		NodeEntry<T> result = resultFree; 
+		PhEntry<T> result = resultFree; 
 		while (!stack.isEmpty()) {
 			NodeIteratorFullNoGC<T> p = stack.peek();
 			while (p.increment(result)) {
-				if (result.node != null) {
-					p = stack.prepareAndPush(result.node);
+				if (result.hasNodeInternal()) {
+					p = stack.prepareAndPush((Node) result.getNodeInternal());
 					continue;
 				} else {
 					resultFree = resultToReturn;

@@ -41,7 +41,7 @@ import ch.ethz.globis.pht64kd.MaxKTreeI.PhIterator64;
  * 
  * @author ztilmann
  *
- * @param <T>
+ * @param <T> value type
  */
 public final class NtIteratorMask<T> implements PhIterator64<T> {
 
@@ -201,6 +201,9 @@ public final class NtIteratorMask<T> implements PhIterator64<T> {
 	 * The method ensures that, at least for shrinking MBB, the iterator
 	 * is 'popped' in case it iterates over a node that does not intersect
 	 * with the new MBBs.  
+	 * 
+	 * @param newGlobalMinMask global min mask 
+	 * @param newGlobalMaxMask global max mask
 	 */
 	public void adjustMinMax(long newGlobalMinMask, long newGlobalMaxMask) {
 		while (stack.size > 1 && !stack.peek().verifyMinMax(newGlobalMinMask, newGlobalMaxMask)) {

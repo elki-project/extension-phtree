@@ -33,7 +33,7 @@ import java.util.ListIterator;
 import ch.ethz.globis.phtree.PhEntry;
 import ch.ethz.globis.phtree.PhFilter;
 import ch.ethz.globis.phtree.util.PhMapper;
-import ch.ethz.globis.phtree.v11.PhTree11.NodeEntry;
+import ch.ethz.globis.phtree.v12.PhTree12.NodeEntry;
 
 /**
  * Immutable result list.

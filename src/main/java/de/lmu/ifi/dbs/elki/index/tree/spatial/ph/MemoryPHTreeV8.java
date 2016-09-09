@@ -1,10 +1,9 @@
 package de.lmu.ifi.dbs.elki.index.tree.spatial.ph;
 
 import ch.ethz.globis.phtree.PhTreeF;
-import ch.ethz.globis.phtree.PhTreeF.PhEntryF;
 import ch.ethz.globis.phtree.PhTreeF.PhKnnQueryF;
 import ch.ethz.globis.phtree.PhTreeF.PhRangeQueryF;
-import ch.ethz.globis.phtree.pre.IntegerPP;
+import ch.ethz.globis.phtree.pre.PreProcessorPointF;
 import de.lmu.ifi.dbs.elki.data.NumberVector;
 import de.lmu.ifi.dbs.elki.data.type.TypeInformation;
 import de.lmu.ifi.dbs.elki.data.type.TypeUtil;
@@ -84,7 +83,7 @@ public class MemoryPHTreeV8<O extends NumberVector> extends AbstractIndex<O>
     //standard preprocessor
     //tree = PhTreeF.create(dims);
     //IntegerPP: about 20% faster, but slightly less accurate
-    tree = PhTreeF.create(dims, new IntegerPP(100L*1000L*1000L));
+    tree = PhTreeF.create(dims, new PreProcessorPointF.Multiply(100L*1000L*1000L));
   }
 
   @Override

@@ -1,5 +1,7 @@
 package ch.ethz.globis.phtree.v11.nt;
 
+import ch.ethz.globis.phtree.PhTreeHelper;
+
 /*
 This file is part of ELKI:
 Environment for Developing KDD-Applications Supported by Index-Structures
@@ -24,14 +26,14 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 /**
- * Manipulation methods and pool for long[].
+ * Manipulation methods and pool for NtNodes.
  * 
  * @author ztilmann
  */
 public class NtNodePool {
 	
-	private static final int MAX_POOL_SIZE = 100;
-	private static final NtNode<?>[] POOL = new NtNode[MAX_POOL_SIZE];
+	private static final NtNode<?>[] POOL = 
+			new NtNode[PhTreeHelper.MAX_OBJECT_POOL_SIZE];
 	private static int poolSize;
 	/** Nodes currently used outside the pool. */
 	private static int activeNodes = 0;

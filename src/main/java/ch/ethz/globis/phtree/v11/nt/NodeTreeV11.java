@@ -1,5 +1,28 @@
 package ch.ethz.globis.phtree.v11.nt;
 
+/*
+This file is part of ELKI:
+Environment for Developing KDD-Applications Supported by Index-Structures
+
+Copyright (C) 2011-2015
+Eidgenössische Technische Hochschule Zürich (ETH Zurich)
+Institute for Information Systems
+GlobIS Group
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
 import static ch.ethz.globis.phtree.PhTreeHelper.align8;
 
 import java.util.List;
@@ -49,8 +72,9 @@ public class NodeTreeV11<T> implements MaxKTreeI {
 	}
 
 	/**
-	 * @param keyBitWidth
+	 * @param keyBitWidth bit width of keys, for example 64
 	 * @return A new NodeTree
+     * @param <T> value type
 	 */
 	public static <T> NodeTreeV11<T> create(int keyBitWidth) {
 		return new NodeTreeV11<>(keyBitWidth);
@@ -199,11 +223,12 @@ public class NodeTreeV11<T> implements MaxKTreeI {
 	
 	/**
 	 * Remove an entry from the tree.
-	 * @param root
-	 * @param hcPos
-	 * @param outerDims
-	 * @param entryCount
+	 * @param root root node 
+	 * @param hcPos HC-pos
+	 * @param outerDims dimensions of main tree
+	 * @param entryCount entry counter object
 	 * @return The value of the removed key or null
+     * @param <T> value type
 	 */
 	public static <T> Object removeEntry(
 			NtNode<T> root, long hcPos, int outerDims, IntVar entryCount) {
@@ -216,14 +241,15 @@ public class NodeTreeV11<T> implements MaxKTreeI {
 	
 	/**
 	 * Removes an entry from the tree.
-	 * @param root
-	 * @param hcPos
-	 * @param outerDims
-	 * @param keyToMatch
-	 * @param newKey
-	 * @param insertRequired
-	 * @param phNode
+	 * @param root parent node
+	 * @param hcPos HC-pos
+	 * @param outerDims dimensions in main tree
+	 * @param keyToMatch key
+	 * @param newKey new key (for updates)
+	 * @param insertRequired insert required?
+	 * @param phNode parent node
 	 * @return The value of the removed key or null
+     * @param <T> value type
 	 */
 	@SuppressWarnings("unchecked")
 	public static <T> Object removeEntry(NtNode<T> root, long hcPos, int outerDims, 
@@ -426,6 +452,7 @@ public class NodeTreeV11<T> implements MaxKTreeI {
 	 * @param hcPos The 'key' in this node tree
 	 * @param value The value of the key-value that is stored under the hcPos
 	 * @return The previous value at the position, if any.
+     * @param <T> value type
 	 */
 	@SuppressWarnings("unchecked")
 	public static <T> T replaceValue(NtNode<T> root, long hcPos, Object value) {
@@ -607,8 +634,10 @@ public class NodeTreeV11<T> implements MaxKTreeI {
 
 	/**
 	 * Collect tree statistics.
-	 * @param node
-	 * @param stats
+	 * @param node node to look at
+	 * @param stats statistics object
+	 * @param dims dimensions
+	 * @param entryBuffer entry list
 	 */
 	public static void getStats(NtNode<?> node, PhTreeStats stats, int dims, 
 			List<Object> entryBuffer) {
@@ -639,7 +668,7 @@ public class NodeTreeV11<T> implements MaxKTreeI {
 		}
 		//count children
 		//nChildren += node.getEntryCount();
-		stats.size += 16 + align8(node.ba.length * 8); //8 bytes per LONG
+		stats.size += 16 + align8(node.ba.length * 8);
 		stats.size += 16 + align8(node.values().length * REF);
 		stats.size += 16 + align8(node.kdKeys().length * 8); //8 bytes per LONG
 		

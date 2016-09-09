@@ -32,7 +32,7 @@ import ch.ethz.globis.pht64kd.MaxKTreeI.NtEntry;
  * 
  * @author ztilmann
  *
- * @param <T>
+ * @param <T> value type
  */
 public class NtNodeIteratorMask<T> {
 	

@@ -29,6 +29,7 @@ import java.util.Comparator;
 public class PhEntry<T> {
   private long[] key;
   private T value;
+	private Object subNode;
   public PhEntry(long[] key, T value) {
     this.key = key;
     this.value = value;
@@ -49,6 +50,7 @@ public class PhEntry<T> {
 
 	/**
 	 * This may return the NULL marker object. 
+	 * @return value
 	 */
 	protected T getValueInternal() {
     return value;
@@ -118,8 +120,26 @@ public class PhEntry<T> {
     this.value = value;
   }
 
+	public void setValueInternal(T val) {
+		this.value = val;
+		this.subNode = null;
+	}
+	
+	public void setNodeInternal(Object node) {
+		this.value = null;
+		this.subNode = node;
+	}
+	
   @Override
   public String toString() {
     return Arrays.toString(key);
   }
+
+	public Object getNodeInternal() {
+		return subNode;
+	}
+
+	public boolean hasNodeInternal() {
+		return subNode != null;
+	}
 }

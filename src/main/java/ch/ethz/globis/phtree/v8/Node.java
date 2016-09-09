@@ -25,9 +25,6 @@ class Node<T> {
   //size of references in bytes
   private static final int REF_BITS = 4*8;
 
-	/**
-	 * @return true if NI should be used. 
-	 */
   private static final boolean NI_THRESHOLD(int subCnt, int postCnt) {
     return (subCnt > 500 || postCnt > 50);
   }

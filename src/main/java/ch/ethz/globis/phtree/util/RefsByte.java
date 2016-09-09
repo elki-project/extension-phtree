@@ -62,7 +62,7 @@ public class RefsByte {
       if (size == 0) {
         return EMPTY_REF_ARRAY;
       }
-      if (size > maxArraySize) {
+      if (size > maxArraySize || !PhTreeHelper.ARRAY_POOLING) {
         return new byte[size];
       }
       synchronized (this) {
@@ -79,7 +79,7 @@ public class RefsByte {
 
     synchronized void offer(byte[] a) {
       int size = a.length;
-      if (size == 0 || size > maxArraySize) {
+      if (size == 0 || size > maxArraySize || !PhTreeHelper.ARRAY_POOLING) {
         return;
       }
       synchronized (this) {
@@ -106,7 +106,7 @@ public class RefsByte {
 
   /**
    * Create an array.
-   * @param size
+   * @param size size
    * @return a new array
    */
   public static byte[] arrayCreate(int size) {
@@ -115,9 +115,9 @@ public class RefsByte {
 
   /**
    * Replaces an array with another array. The replaced array is returned to the pool.
-   * @param oldA
-   * @param newA
-   * @return
+   * @param oldA old array
+   * @param newA new array
+   * @return new array
    */
   public static byte[] arrayReplace(byte[] oldA, byte[] newA) {
     if (oldA != null) {
@@ -128,7 +128,7 @@ public class RefsByte {
 
   /**
    * Clones an array.
-   * @param oldA
+   * @param oldA old array
    * @return a copy or the input array
    */
   public static byte[] arrayClone(byte[] oldA) {
@@ -141,9 +141,9 @@ public class RefsByte {
    * Inserts an empty field at position 'pos'. If the required size is larger than the current
    * size, the array is copied to a new array. The new array is returned and the old array is
    * given to the pool.
-   * @param values
-   * @param pos
-   * @param requiredSize
+   * @param values array
+   * @param pos position
+   * @param requiredSize required size
    * @return the modified array
    */
   public static byte[] insertSpaceAtPos(byte[] values, int pos, int requiredSize) {
@@ -160,9 +160,9 @@ public class RefsByte {
    * Removes a field at position 'pos'. If the required size is smaller than the current
    * size, the array is copied to a new array. The new array is returned and the old array is
    * given to the pool.
-   * @param values
-   * @param pos
-   * @param requiredSize
+   * @param values array
+   * @param pos position
+   * @param requiredSize required size
    * @return the modified array
    */
   public static byte[] removeSpaceAtPos(byte[] values, int pos, int requiredSize) {
@@ -200,9 +200,9 @@ public class RefsByte {
 
   /**
    * Write the src array into the dst array at position dstPos. 
-   * @param src
-   * @param dst
-   * @param dstPos
+   * @param src source array
+   * @param dst destination array
+   * @param dstPos destination position
    */
   public static void writeArray(byte[] src, byte[] dst, int dstPos) {
     arraycopy(src, 0, dst, dstPos, src.length);
@@ -210,11 +210,11 @@ public class RefsByte {
 
   /**
    * Same a {@link #arraycopy(byte[], int, byte[], int, int)}. 
-   * @param src
-   * @param srcPos
-   * @param dst
-   * @param dstPos
-   * @param length
+   * @param src source array
+   * @param srcPos source position
+   * @param dst destination array
+   * @param dstPos destination position
+   * @param length length
    */
   public static void writeArray(byte[] src, int srcPos, byte[] dst, int dstPos, int length) {
     arraycopy(src, srcPos, dst, dstPos, length);
@@ -222,9 +222,9 @@ public class RefsByte {
 
   /**
    * Reads data from srcPos in src[] into dst[]. 
-   * @param src
-   * @param srcPos
-   * @param dst
+   * @param src source array
+   * @param srcPos source position
+   * @param dst destination array
    */
   public static void readArray(byte[] src, int srcPos, byte[] dst) {
     arraycopy(src, srcPos, dst, 0, dst.length);
@@ -233,10 +233,9 @@ public class RefsByte {
   /**
    * Creates a new array with from copying oldA and inserting insertA at position pos.
    * The old array is returned to the pool. 
-   * @param oldA
-   * @param insertA
-   * @param dstPos
-   * @param length
+   * @param oldA old array
+   * @param insertA array to insert
+   * @param dstPos destination position
    * @return new array
    */
   public static byte[] insertArray(byte[] oldA, byte[] insertA, int dstPos) {
@@ -251,9 +250,9 @@ public class RefsByte {
   /**
    * Creates a new array with from copying oldA and removing 'length' entries at position pos.
    * The old array is returned to the pool. 
-   * @param oldA
-   * @param dstPos
-   * @param length
+   * @param oldA old array
+   * @param dstPos destination position
+   * @param length length
    * @return new array
    */
   public static byte[] arrayRemove(byte[] oldA, int dstPos, int length) {
@@ -266,11 +265,11 @@ public class RefsByte {
 
   /**
    * Same as System.arraycopy(), but uses a faster copy-by-loop approach for small arrays.
-   * @param src
-   * @param srcPos
-   * @param dst
-   * @param dstPos
-   * @param len
+   * @param src source array
+   * @param srcPos source position
+   * @param dst destination array
+   * @param dstPos destination position
+   * @param len length
    */
   public static void arraycopy(byte[] src, int srcPos, byte[] dst, int dstPos, int len) {
     if (len < 10) {
@@ -284,9 +283,9 @@ public class RefsByte {
 
   /**
    * Writes a byte array to a stream.
-   * @param a
-   * @param out
-   * @throws IOException
+   * @param a array
+   * @param out output stream
+   * @throws IOException if writing fails
    */
   public static void write(byte[] a, ObjectOutput out) throws IOException {
     out.writeInt(a.length);
@@ -297,9 +296,9 @@ public class RefsByte {
 
   /**
    * Reads a byte array from a stream.
-   * @param in
+   * @param in input stream
    * @return the long array.
-   * @throws IOException 
+   * @throws IOException if reading fails
    */
   public static byte[] read(ObjectInput in) throws IOException {
     int size = in.readInt();

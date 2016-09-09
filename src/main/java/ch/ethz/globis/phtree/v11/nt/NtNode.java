@@ -1,5 +1,28 @@
 package ch.ethz.globis.phtree.v11.nt;
 
+/*
+This file is part of ELKI:
+Environment for Developing KDD-Applications Supported by Index-Structures
+
+Copyright (C) 2011-2015
+Eidgenössische Technische Hochschule Zürich (ETH Zurich)
+Institute for Information Systems
+GlobIS Group
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
 import ch.ethz.globis.phtree.util.Refs;
 import ch.ethz.globis.phtree.util.RefsLong;
 
@@ -9,7 +32,7 @@ import ch.ethz.globis.phtree.util.RefsLong;
  * 
  * @author ztilmann
  *
- * @param <T>
+ * @param <T> value type
  */
 public class NtNode<T> {
 	
@@ -18,7 +41,7 @@ public class NtNode<T> {
 	 * This may not be correct for all sub-nodes, but it does no harm and simplifies
 	 * algorithms that iterator over the tree (avoid switching dimensions, etc).
 	 * 
-	 * WARNING using MAX_DIM > 15 will fail because entryCnt is of type 'short'! 
+	 * WARNING using MAX_DIM bigger than 15 will fail because entryCnt is of type 'short'! 
 	 */
 	public static final int MAX_DIM = 6;
 	private static final long MAX_DIM_MASK = ~((-1L) << MAX_DIM);
@@ -36,8 +59,8 @@ public class NtNode<T> {
 	private boolean isAHC = false;
 	private byte postLen = 0;
 
-	static final int IK_WIDTH(int dims) { return dims; }; //post index key width 
-	static final int KD_WIDTH(int kdDims) { return kdDims * 64; }; //post index key width 
+	static final int IK_WIDTH(int dims) { return dims; } //post index key width 
+	static final int KD_WIDTH(int kdDims) { return kdDims * 64; } //post index key width 
 
 	protected NtNode(NtNode<T> original) {
         this.values = Refs.arrayClone(original.values);
@@ -129,7 +152,7 @@ public class NtNode<T> {
 	 * This conversion has to be made such that the z-order of all entries is
 	 * preserved.
 	 * Therefore, we have to keep higher-order bits in the top-level nodes of the
-	 * tree. As a downside, it requires additional effort (TODO) to have 2^MAX_DIM
+	 * tree. As a downside, it requires additional effort to have 2^MAX_DIM
 	 * children in the root node if the dimension is not a multiple of MAX_DIM.
 	 * 
 	 * @param hcPos
@@ -148,7 +171,6 @@ public class NtNode<T> {
 		int infixBits = getPostLen() * MAX_DIM;
 		int infixPos = pinToOffsBitsData(pin, localHcPos, MAX_DIM); 
 		return Bits.readArray(ba, infixPos, infixBits);
-		//TODO erase lower bits?
 	}
 
     long localReadPostfix(int pin, long localHcPos) {
@@ -323,7 +345,6 @@ public class NtNode<T> {
 		//+DIM because every index entry needs DIM bits
 		long sizeLHC = (dims * postLen + IK_WIDTH(dims) + REF_BITS + KD_WIDTH(kdDims)) 
 				* (long)entryCount;
-		//use 1.5 as bias
 		return NodeTreeV11.AHC_ENABLED && (dims<=31) && (sizeLHC*1.5 >= sizeAHC);
 	}
 
@@ -396,7 +417,8 @@ public class NtNode<T> {
 		Object oldEntry = null;
 		setAHC( false );
 		long[] bia2 = Bits.arrayCreate(calcArraySizeTotalBits(oldEntryCount-1, dims));
-		long[] kdKeys2 = RefsLong.arrayCreate(calcArraySizeTotalLongs(oldEntryCount-1, dims, kdDims));
+		long[] kdKeys2 = 
+				RefsLong.arrayCreate(calcArraySizeTotalLongs(oldEntryCount-1, dims, kdDims));
 		Object[] v2 = Refs.arrayCreate(oldEntryCount-1);
 		int oldOffsIndex = getBitPosIndex();
 		int oldOffsData = oldOffsIndex + (1<<dims)*INN_HC_WIDTH;
