@@ -15,6 +15,7 @@ import ch.ethz.globis.phtree.PersistenceProvider;
 import ch.ethz.globis.phtree.PhDistance;
 import ch.ethz.globis.phtree.PhDistanceL;
 import ch.ethz.globis.phtree.PhEntry;
+import ch.ethz.globis.phtree.PhEntryDist;
 import ch.ethz.globis.phtree.PhFilter;
 import ch.ethz.globis.phtree.PhFilterDistance;
 import ch.ethz.globis.phtree.PhRangeQuery;
@@ -109,12 +110,16 @@ public class PhTree12<T> extends PhTree<T> {
 	/**
 	 * @param <T>
 	 */
-	public static class NodeEntry<T> extends PhEntry<T> {
+	public static class NodeEntry<T> extends PhEntryDist<T> {
 		Object node;
 		byte subCode;
 
 		NodeEntry(long[] key, byte subCode, T value) {
-			super(key, value);
+			this(key, subCode, value, Double.NaN);
+		}
+		
+		NodeEntry(long[] key, byte subCode, T value, double dist) {
+			super(key, value, dist);
 			this.node = null;
 			this.subCode = subCode;
 		}

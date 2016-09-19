@@ -26,9 +26,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.NoSuchElementException;
 
+import ch.ethz.globis.phtree.PhEntryDist;
 import ch.ethz.globis.phtree.PersistenceProvider;
 import ch.ethz.globis.phtree.PhDistance;
 import ch.ethz.globis.phtree.PhEntry;
@@ -72,299 +72,267 @@ import ch.ethz.globis.phtree.v12.PhTree12.NodeEntry;
  */
 public class PhQueryKnnMbbPP<T> implements PhKnnQuery<T> {
 
-	private final int dims;
-	private int nMin;
-	private PhTree12<T> pht;
-	private final PersistenceProvider pp;
-	private PhDistance distance;
-	private final ArrayList<DistEntry<T>> entries = new ArrayList<>();
-	private int resultSize = 0;
-	private int currentPos = -1;
-	private final long[] mbbMin;
-	private final long[] mbbMax;
-	private final PhIteratorNoGC<T> iter;
-	private final PhFilterDistance checker;
+  private final int dims;
+  private int nMin;
+  private PhTree12<T> pht;
+  private final PersistenceProvider pp;
+  private PhDistance distance;
+  private final ArrayList<PhEntryDist<T>> entries = new ArrayList<>();
+  private int resultSize = 0;
+  private int currentPos = -1;
+  private final long[] mbbMin;
+  private final long[] mbbMax;
+  private final PhIteratorNoGC<T> iter;
+  private final PhFilterDistance checker;
 
-	public PhQueryKnnMbbPP(PhTree12<T> pht) {
-		this.dims = pht.getDim();
-		this.mbbMin = new long[dims];
-		this.mbbMax = new long[dims];
-		this.pht = pht;
-		this.pp = pht.getPersistenceProvider();
-		this.checker = new PhFilterDistance();
-		this.iter = new PhIteratorNoGC<>(pht, checker);
-	}
+  public PhQueryKnnMbbPP(PhTree12<T> pht) {
+    this.dims = pht.getDim();
+    this.mbbMin = new long[dims];
+    this.mbbMax = new long[dims];
+    this.pht = pht;
+    this.pp = pht.getPersistenceProvider();
+    this.checker = new PhFilterDistance();
+    this.iter = new PhIteratorNoGC<>(pht, checker);
+  }
 
-	@Override
-	public long[] nextKey() {
-		return nextEntryReuse().getKey();
-	}
+  @Override
+  public long[] nextKey() {
+    return nextEntryReuse().getKey();
+  }
 
-	@Override
-	public T nextValue() {
-		return nextEntryReuse().getValue();
-	}
+  @Override
+  public T nextValue() {
+    return nextEntryReuse().getValue();
+  }
 
-	@Override
-	public PhEntry<T> nextEntry() {
-		return new PhEntry<>(nextEntryReuse());
-	} 
+  @Override
+  public PhEntryDist<T> nextEntry() {
+    return new PhEntryDist<>(nextEntryReuse());
+  } 
 
-	@Override
-	public PhEntry<T> nextEntryReuse() {
-		if (currentPos >= resultSize) {
-			throw new NoSuchElementException();
-		}
-		return entries.get(currentPos++);
-	}
+  @Override
+  public PhEntryDist<T> nextEntryReuse() {
+    if (currentPos >= resultSize) {
+      throw new NoSuchElementException();
+    }
+    return entries.get(currentPos++);
+  }
 
-	@Override
-	public boolean hasNext() {
-		return currentPos < resultSize;
-	}
+  @Override
+  public boolean hasNext() {
+    return currentPos < resultSize;
+  }
 
-	@Override
-	public T next() {
-		return nextValue();
-	}
+  @Override
+  public T next() {
+    return nextValue();
+  }
 
-	@Override
-	public PhKnnQuery<T> reset(int nMin, PhDistance dist, long... center) {
-		this.distance = dist == null ? this.distance : dist;
-		this.nMin = nMin;
-		clearEntries();
+  @Override
+  public PhKnnQuery<T> reset(int nMin, PhDistance dist, long... center) {
+    this.distance = dist == null ? this.distance : dist;
+    this.nMin = nMin;
+    clearEntries();
 
-		if (nMin > 0) {
-			nearestNeighbourBinarySearch(center, nMin);
-		}
+    if (nMin > 0) {
+      nearestNeighbourBinarySearch(center, nMin);
+    }
 
-		currentPos = 0;
-		return this;
-	}
+    currentPos = 0;
+    return this;
+  }
 
-	private void findKnnCandidate(long[] center, long[] ret) {
-		findKnnCandidate(center, pht.getRoot(), ret);
-	}
+  private void findKnnCandidate(long[] center, long[] ret) {
+    findKnnCandidate(center, pht.getRoot(), ret);
+  }
 
-	private long[] findKnnCandidate(long[] key, Node node, long[] ret) {
-		Object v = node.doIfMatching(key, true, null, null, null, pht);
-		if (v == null) {
-			//Okay, there is no perfect match:
-			//just perform a query on the current node and return the first value that we find.
-			return returnAnyValue(ret, key, node);
-		}
-		if (v instanceof Node) {
-			return findKnnCandidate(key, (Node) v, ret);
-		}
+  private long[] findKnnCandidate(long[] key, Node node, long[] ret) {
+    Object v = node.doIfMatching(key, true, null, null, null, pht);
+    if (v == null) {
+      //Okay, there is no perfect match:
+      //just perform a query on the current node and return the first value that we find.
+      return returnAnyValue(ret, key, node);
+    }
+    if (v instanceof Node) {
+      return findKnnCandidate(key, (Node) v, ret);
+    }
 
-		//so we have a perfect match!
-		//But we should return it only if nMin=1, otherwise our search area is too small.
-		if (nMin == 1) {
-			//Never return closest key if we look for nMin>1 keys!
-			//now return the key, even if it may not be an exact match (we don't check)
-			//TODO why is this necessary? we should have a complete 'ret' at this point...
-			System.arraycopy(key, 0, ret, 0, key.length);
-			return ret;
-		}
-		//Okay just perform a query on the current node and return the first value that we find.
-		return returnAnyValue(ret, key, node);
-	}
+    //so we have a perfect match!
+    //But we should return it only if nMin=1, otherwise our search area is too small.
+    if (nMin == 1) {
+      //Never return closest key if we look for nMin>1 keys!
+      //now return the key, even if it may not be an exact match (we don't check)
+      //TODO why is this necessary? we should have a complete 'ret' at this point...
+      System.arraycopy(key, 0, ret, 0, key.length);
+      return ret;
+    }
+    //Okay just perform a query on the current node and return the first value that we find.
+    return returnAnyValue(ret, key, node);
+  }
 
-	private long[] returnAnyValue(long[] ret, long[] key, Node node) {
-		//First, get correct prefix.
-		long mask = (-1L) << (node.getPostLen()+1);
-		for (int i = 0; i < dims; i++) {
-			ret[i] = key[i] & mask;
-		}
-		
-		NodeIteratorFullNoGC<T> ni = new NodeIteratorFullNoGC<>(dims, ret, pp);
-		//This allows writing the result directly into 'ret'
-		NodeEntry<T> result = new NodeEntry<>(ret, Node.SUBCODE_EMPTY, null);
-		ni.init(node, null);
-		while (ni.increment(result)) {
-			if (result.node != null) {
-				//traverse sub node
-				ni.init((Node) pp.loadNode(result.node), null);
-			} else {
-				//Never return closest key if we look for nMin>1 keys!
-				if (nMin > 1 && Arrays.equals(key, result.getKey())) {
-					//Never return a perfect match if we look for nMin>1 keys!
-					//otherwise the distance is too small.
-					//This check should be cheap and will not be executed more than once anyway.
-					continue;
-				}
-				return ret;
-			}
-		}
-		throw new IllegalStateException();
-	}
+  private long[] returnAnyValue(long[] ret, long[] key, Node node) {
+    //First, get correct prefix.
+    long mask = (-1L) << (node.getPostLen()+1);
+    for (int i = 0; i < dims; i++) {
+      ret[i] = key[i] & mask;
+    }
 
-	/**
-	 * This approach applies binary search to queries.
-	 * It start with a query that covers the whole tree. Then whenever it finds an entry (the first)
-	 * it discards the query and starts a smaller one with half the distance to the search-point.
-	 * This effectively reduces the volume by 2^k.
-	 * Once a query returns no result, it uses the previous query to traverse all results
-	 * and find the nearest result.
-	 * As an intermediate step, it may INCREASE the query size until a non-empty query appears.
-	 * Then it could decrease again, like a true binary search.
-	 * 
-	 * When looking for nMin > 1, one could search for queries with at least nMin results...
-	 * 
-	 * @param val
-	 * @param nMin
-	 */
-	private void nearestNeighbourBinarySearch(long[] val, int nMin) {
-		//special case with minDist = 0
-		if (nMin == 1 && pht.contains(val)) {
-			addEntry(new PhEntry<T>(val, pht.get(val)), val);
-			return;
-		}
-
-		//special case with size() <= nMin
-		if (pht.size() <= nMin) {
-			PhExtent<T> itEx = pht.queryExtent();
-			while (itEx.hasNext()) {
-				PhEntry<T> e = itEx.nextEntryReuse();
-				addEntry(e, val);
-			}
-
-			sortEntries();
-			return;
-		}
-
-		//estimate initial distance
-		long[] cand = new long[dims];
-		findKnnCandidate(val, cand);
-		double currentDist = distance.dist(val, cand);
-
-		while (!findNeighbours(currentDist, nMin, val)) {
-			currentDist *= 10;
-		}
-	}
-
-	private final boolean findNeighbours(double maxDist, int nMin, long[] val) {
-		//Epsilon for calculating the distance depends on DIM, the magnitude of the values and
-		//the precision of the Double mantissa.
-		//TODO, this should use the lowerBound i.o. upperBound
-		final double EPS = dims * maxDist / (double)(1L << 51);//2^(53-2));
-		final int CONSOLIDATION_INTERVAL = 10;
-		clearEntries();
-		checker.set(val, distance, maxDist);
-		distance.toMBB(maxDist, val, mbbMin, mbbMax);
-		iter.reset(mbbMin, mbbMax);
-
-		// Get nMin results
-		while (iter.hasNext() && resultSize < nMin) {
-			PhEntry<T> en = iter.nextEntryReuse();
-			addEntry(en, val);
-		}
-		sortEntries();
-
-		if (resultSize < nMin) {
-			//too small, we need a bigger range
-			return false;
-		}
-		if (!iter.hasNext()) {
-			//perfect fit!
-			return true;
-		}
-
-		//get distance of farthest entry and continue query with this new distance
-		maxDist = entries.get(nMin-1).dist;
-		checker.set(val, distance, maxDist);
-		distance.toMBB(maxDist, val, mbbMin, mbbMax);
-		iter.adjustMinMax();
-
-		// we continue the query but reduce the range maximum range 
-		int cnt = 0;
-		while (iter.hasNext()) {
-			PhEntry<T> e = iter.nextEntryReuse();
-			addEntry(e, val);
-			cnt++;
-			if (cnt % CONSOLIDATION_INTERVAL == 0) {
-				maxDist = consolidate(nMin, EPS, maxDist);
-				//update query-dist
-				checker.set(val, distance, maxDist);
-				distance.toMBB(maxDist, val, mbbMin, mbbMax);
-				iter.adjustMinMax();
-			}
-		}
-		// no more elements in tree
-		consolidate(nMin, EPS, maxDist);
-		return true;
-	}
-
-	private double consolidate(int nMin, double eps, double max) {
-		sortEntries();
-		double maxDnew = entries.get(nMin-1).dist;
-		if (maxDnew < max+eps) { //TODO epsilon?
-			max = maxDnew;
-			for (int i2 = nMin; i2 < resultSize; i2++) {
-				//purge 
-				if (entries.get(i2).dist + eps > max) {
-					resultSize = i2;
-					break;
-				}
-			}
-		}
-		return max;
-	}
-
-
-	private static class DistEntry<T> extends PhEntry<T> {
-    static final Comparator<DistEntry<?>> COMP = new Comparator<DistEntry<?>>() {
-      @Override
-      public int compare(DistEntry<?> o1, DistEntry<?> o2) {
-        //(DistEntry<?> o1, DistEntry<?> o2) -> {
-        //We assume only normal positive numbers
-        //We have to do it this way because the delta may exceed the 'int' value space  
-        double d = o1.dist - o2.dist;
-        return d > 0 ? 1 : (d < 0 ? -1 : 0);
+    NodeIteratorFullNoGC<T> ni = new NodeIteratorFullNoGC<>(dims, ret, pp);
+    //This allows writing the result directly into 'ret'
+    NodeEntry<T> result = new NodeEntry<>(ret, Node.SUBCODE_EMPTY, null);
+    ni.init(node, null);
+    while (ni.increment(result)) {
+      if (result.node != null) {
+        //traverse sub node
+        ni.init((Node) pp.loadNode(result.node), null);
+      } else {
+        //Never return closest key if we look for nMin>1 keys!
+        if (nMin > 1 && Arrays.equals(key, result.getKey())) {
+          //Never return a perfect match if we look for nMin>1 keys!
+          //otherwise the distance is too small.
+          //This check should be cheap and will not be executed more than once anyway.
+          continue;
+        }
+        return ret;
       }
-    };
+    }
+    throw new IllegalStateException();
+  }
 
-		double dist;
+  /**
+   * This approach applies binary search to queries.
+   * It start with a query that covers the whole tree. Then whenever it finds an entry (the first)
+   * it discards the query and starts a smaller one with half the distance to the search-point.
+   * This effectively reduces the volume by 2^k.
+   * Once a query returns no result, it uses the previous query to traverse all results
+   * and find the nearest result.
+   * As an intermediate step, it may INCREASE the query size until a non-empty query appears.
+   * Then it could decrease again, like a true binary search.
+   * 
+   * When looking for nMin > 1, one could search for queries with at least nMin results...
+   * 
+   * @param val
+   * @param nMin
+   */
+  private void nearestNeighbourBinarySearch(long[] val, int nMin) {
+    //special case with minDist = 0
+    if (nMin == 1 && pht.contains(val)) {
+      addEntry(new PhEntry<T>(val, pht.get(val)), val);
+      return;
+    }
 
-		DistEntry(long[] key, T value, double dist) {
-			super(key, value);
-			this.dist = dist;
-		}
+    //special case with size() <= nMin
+    if (pht.size() <= nMin) {
+      PhExtent<T> itEx = pht.queryExtent();
+      while (itEx.hasNext()) {
+        PhEntry<T> e = itEx.nextEntryReuse();
+        addEntry(e, val);
+      }
 
-		DistEntry(PhEntry<T> e, double dist) {
-			super(e);
-			this.dist = dist;
-		}
+      sortEntries();
+      return;
+    }
 
-		void set(PhEntry<T> e, double dist) {
-			super.setValue(e.getValue());
-			System.arraycopy(e.getKey(), 0, getKey(), 0, getKey().length);
-			this.dist = dist;
-		}
-	}
+    //estimate initial distance
+    long[] cand = new long[dims];
+    findKnnCandidate(val, cand);
+    double currentDist = distance.dist(val, cand);
 
-	private void addEntry(PhEntry<T> e, long[] center) {
-		double dist = distance.dist(center, e.getKey());
-		if (resultSize < entries.size()) {
-			entries.get(resultSize).set(e, dist);
-		} else {
-			DistEntry<T> de = new DistEntry<>(e, dist);
-			entries.add(de);
-		}
-		resultSize++;
-	}
+    while (!findNeighbours(currentDist, nMin, val)) {
+      currentDist *= 10;
+    }
+  }
 
-	private void clearEntries() {
-		resultSize = 0;
-		for (int i = 0; i < entries.size(); i++) {
-			entries.get(i).dist = Double.MAX_VALUE;
-		}
-		//TODO clear if size > 2*nMax?
-	}
+  private final boolean findNeighbours(double maxDist, int nMin, long[] val) {
+    //Epsilon for calculating the distance depends on DIM, the magnitude of the values and
+    //the precision of the Double mantissa.
+    //TODO, this should use the lowerBound i.o. upperBound
+    final double EPS = dims * maxDist / (double)(1L << 51);//2^(53-2));
+    final int CONSOLIDATION_INTERVAL = 10;
+    clearEntries();
+    checker.set(val, distance, maxDist);
+    distance.toMBB(maxDist, val, mbbMin, mbbMax);
+    iter.reset(mbbMin, mbbMax);
 
-	private void sortEntries() {
-    Collections.sort(entries, DistEntry.COMP);
-	}
+    // Get nMin results
+    while (iter.hasNext() && resultSize < nMin) {
+      PhEntry<T> en = iter.nextEntryReuse();
+      addEntry(en, val);
+    }
+    sortEntries();
+
+    if (resultSize < nMin) {
+      //too small, we need a bigger range
+      return false;
+    }
+    if (!iter.hasNext()) {
+      //perfect fit!
+      return true;
+    }
+
+    //get distance of farthest entry and continue query with this new distance
+    maxDist = entries.get(nMin-1).dist();
+    checker.set(val, distance, maxDist);
+    distance.toMBB(maxDist, val, mbbMin, mbbMax);
+    iter.adjustMinMax();
+
+    // we continue the query but reduce the range maximum range 
+    int cnt = 0;
+    while (iter.hasNext()) {
+      PhEntry<T> e = iter.nextEntryReuse();
+      addEntry(e, val);
+      cnt++;
+      if (cnt % CONSOLIDATION_INTERVAL == 0) {
+        maxDist = consolidate(nMin, EPS, maxDist);
+        //update query-dist
+        checker.set(val, distance, maxDist);
+        distance.toMBB(maxDist, val, mbbMin, mbbMax);
+        iter.adjustMinMax();
+      }
+    }
+    // no more elements in tree
+    consolidate(nMin, EPS, maxDist);
+    return true;
+  }
+
+  private double consolidate(int nMin, double eps, double max) {
+    sortEntries();
+    double maxDnew = entries.get(nMin-1).dist();
+    if (maxDnew < max+eps) { //TODO epsilon?
+      max = maxDnew;
+      for (int i2 = nMin; i2 < resultSize; i2++) {
+        //purge 
+        if (entries.get(i2).dist() + eps > max) {
+          resultSize = i2;
+          break;
+        }
+      }
+    }
+    return max;
+  }
+
+  private void addEntry(PhEntry<T> e, long[] center) {
+    double dist = distance.dist(center, e.getKey());
+    if (resultSize < entries.size()) {
+      entries.get(resultSize).set(e, dist);
+    } else {
+      PhEntryDist<T> de = new PhEntryDist<>(e, dist);
+      entries.add(de);
+    }
+    resultSize++;
+  }
+
+  private void clearEntries() {
+    resultSize = 0;
+    for (int i = 0; i < entries.size(); i++) {
+      entries.get(i).clear();
+    }
+    //TODO clear if size > 2*nMax?
+  }
+
+  private void sortEntries() {
+    Collections.sort(entries, PhEntryDist.COMP);
+  }
 
   @Override
   public void remove() {

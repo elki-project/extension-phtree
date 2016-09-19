@@ -4,7 +4,6 @@ import static ch.ethz.globis.phtree.PhTreeHelper.posInArray;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.NoSuchElementException;
 
 import org.zoodb.index.critbit.CritBit64.CBIterator;
@@ -12,6 +11,7 @@ import org.zoodb.index.critbit.CritBit64.Entry;
 
 import ch.ethz.globis.phtree.PhDistance;
 import ch.ethz.globis.phtree.PhEntry;
+import ch.ethz.globis.phtree.PhEntryDist;
 import ch.ethz.globis.phtree.PhFilterDistance;
 import ch.ethz.globis.phtree.PhTree.PhIterator;
 import ch.ethz.globis.phtree.PhTree.PhKnnQuery;
@@ -56,7 +56,7 @@ public class PhQueryKnnMbbPP<T> implements PhKnnQuery<T> {
   private int nMin;
   private PhTree8<T> pht;
   private PhDistance distance;
-  private final ArrayList<DistEntry<T>> entries = new ArrayList<>();
+	private final ArrayList<PhEntryDist<T>> entries = new ArrayList<>();
   private int resultSize = 0;
   private int currentPos = -1;
   private final long[] mbbMin;
@@ -84,12 +84,12 @@ public class PhQueryKnnMbbPP<T> implements PhKnnQuery<T> {
   }
 
   @Override
-  public PhEntry<T> nextEntry() {
-    return new PhEntry<T>(nextEntryReuse());
+  public PhEntryDist<T> nextEntry() {
+		return new PhEntryDist<>(nextEntryReuse());
   } 
 
   @Override
-  public PhEntry<T> nextEntryReuse() {
+	public PhEntryDist<T> nextEntryReuse() {
     if (currentPos >= resultSize) {
       throw new NoSuchElementException();
     }
@@ -290,7 +290,7 @@ public class PhQueryKnnMbbPP<T> implements PhKnnQuery<T> {
     }
 
     //get distance of furthest entry and continue query with this new distance
-    maxDist = entries.get(nMin-1).dist;
+		maxDist = entries.get(nMin-1).dist();
     checker.set(val, distance, maxDist);
     distance.toMBB(maxDist, val, mbbMin, mbbMax);
 
@@ -314,12 +314,12 @@ public class PhQueryKnnMbbPP<T> implements PhKnnQuery<T> {
 
   private double consolidate(int nMin, double EPS, double max) {
     sortEntries();
-    double maxDnew = entries.get(nMin-1).dist;
+		double maxDnew = entries.get(nMin-1).dist();
     if (maxDnew < max+EPS) { //TODO epsilon?
       max = maxDnew;
       for (int i2 = nMin; i2 < resultSize; i2++) {
         //purge 
-        if (entries.get(i2).dist + EPS > max) {
+				if (entries.get(i2).dist() + EPS > max) {
           resultSize = i2;
           break;
         }
@@ -328,41 +328,12 @@ public class PhQueryKnnMbbPP<T> implements PhKnnQuery<T> {
     return max;
   }
 
-  private static class DistEntry<T> extends PhEntry<T> {
-    static final Comparator<DistEntry<?>> COMP = new Comparator<DistEntry<?>>() {
-      @Override
-      public int compare(DistEntry<?> o1, DistEntry<?> o2) {
-        //We assume only normal positive numbers
-        double d = o1.dist - o2.dist;
-        return d > 0 ? 1 : (d < 0 ? -1 : 0); 
-      }
-    };
-
-    double dist;
-
-    DistEntry(long[] key, T value, double dist) {
-      super(key, value);
-      this.dist = dist;
-    }
-
-    DistEntry(PhEntry<T> e, double dist) {
-      super(e);
-      this.dist = dist;
-    }
-
-    void set(PhEntry<T> e, double dist) {
-      super.setValue(e.getValue());
-      System.arraycopy(e.getKey(), 0, getKey(), 0, getKey().length);
-      this.dist = dist;
-    }
-  }
-
   private void addEntry(PhEntry<T> e, long[] center) {
     double dist = distance.dist(center, e.getKey());
     if (resultSize < entries.size()) {
       entries.get(resultSize).set(e, dist);
     } else {
-      DistEntry<T> de = new DistEntry<>(e, dist);
+			PhEntryDist<T> de = new PhEntryDist<>(e, dist);
       entries.add(de);
     }
     resultSize++;
@@ -371,13 +342,13 @@ public class PhQueryKnnMbbPP<T> implements PhKnnQuery<T> {
   private void clearEntries() {
     resultSize = 0;
     for (int i = 0; i < entries.size(); i++) {
-      entries.get(i).dist = Double.MAX_VALUE;
+			entries.get(i).clear();
     }
     //TODO clear if size > 2*nMax?
   }
 
   private void sortEntries() {
-    Collections.sort(entries, DistEntry.COMP);
+    Collections.sort(entries, PhEntryDist.COMP);
   }
 
   @Override

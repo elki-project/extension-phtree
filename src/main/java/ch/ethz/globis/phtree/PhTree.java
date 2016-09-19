@@ -184,7 +184,7 @@ public abstract class PhTree<T> {
    * @param <T> the type of the values
    */
   public static <T> PhTree<T> create(int dim) {
-    return new PhTree12<>(dim);
+    return new PhTree11<>(dim);
   }
 
   /**
@@ -195,7 +195,7 @@ public abstract class PhTree<T> {
    * @param <T> the type of the values
    */
   public static <T> PhTree<T> create(PhTreeConfig cfg) {
-    return new PhTree12<>(cfg);
+    return new PhTree11<>(cfg);
   }
 
   /**
