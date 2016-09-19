@@ -39,7 +39,8 @@ import de.lmu.ifi.dbs.elki.utilities.documentation.Reference;
 import de.lmu.ifi.dbs.elki.utilities.optionhandling.AbstractParameterizer;
 
 /**
- * Implementation of an in-memory PH-tree.
+ * Implementation of an in-memory PH-tree. This version
+ * uses the previous version v8 of the PH-Tree.
  *
  * @author Tilmann Zaeschke, Erich Schubert
  *

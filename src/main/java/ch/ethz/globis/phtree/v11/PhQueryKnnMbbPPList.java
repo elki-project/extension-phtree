@@ -170,7 +170,6 @@ public class PhQueryKnnMbbPPList<T> implements PhKnnQuery<T> {
 	}
 
 	private double getDistanceToClosest(long[] key, Node node) {
-		//TODO
 		//This is a hack.
 		//calcDiagonal() is problematic when applied to IEEE encoded
 		//floating point values, especially when it the node is at the
@@ -178,6 +177,7 @@ public class PhQueryKnnMbbPPList<T> implements PhKnnQuery<T> {
 		if (node.getPostLen() <= 52) { 
 			return calcDiagonal(key, node);
 		}
+		
 		//First, get correct prefix.
 		long mask = (-1L) << (node.getPostLen()+1);
 		for (int i = 0; i < dims; i++) {

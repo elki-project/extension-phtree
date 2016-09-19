@@ -28,7 +28,6 @@ import java.util.NoSuchElementException;
 
 import ch.ethz.globis.phtree.PersistenceProvider;
 import ch.ethz.globis.phtree.PhDistance;
-import ch.ethz.globis.phtree.PhDistanceF;
 import ch.ethz.globis.phtree.PhEntry;
 import ch.ethz.globis.phtree.PhEntryDist;
 import ch.ethz.globis.phtree.PhFilterDistance;
@@ -175,44 +174,19 @@ public class PhQueryKnnMbbPPList<T> implements PhKnnQuery<T> {
 	}
 
 	private double getDistanceToClosest(long[] key, Node node) {
-		//TODO
-		//if (true) return calcDiagonal(key, node);
+    //This is a hack.
+    //calcDiagonal() is problematic when applied to IEEE encoded
+    //floating point values, especially when it the node is at the
+    //level of the exponent bits.
+    if (node.getPostLen() <= 52) { 
+      return calcDiagonal(key, node);
+    }
+
 		//First, get correct prefix.
 		long mask = (-1L) << (node.getPostLen()+1);
 		for (int i = 0; i < dims; i++) {
 			niBuffer[i] = key[i] & mask;
 		}
-		
-		
-		//TODO use the following instead of the iterator below?!!?
-		//TODO use the following instead of the iterator below?!!?
-		//TODO use the following instead of the iterator below?!!?
-		//TODO use the following instead of the iterator below?!!?
-		//TODO use the following instead of the iterator below?!!?
-		//TODO use the following instead of the iterator below?!!?
-		//TODO use the following instead of the iterator below?!!?
-		//The pin of the entry that we want to keep
-//		int pin2 = -1;
-//		long pos2 = -1;
-//		Object val2 = null;
-//		Object[] values = node.values();
-//		if (node.isAHC()) {
-//			for (int i = 0; i < (1<<key.length); i++) {
-//				if (values[i] != null && i != pinToDelete) {
-//					pin2 = i;
-//					pos2 = i;
-//					val2 = values[i];
-//					break;
-//				}
-//			}
-//		} else {
-//			//LHC: we have only pos=0 and pos=1
-//			pin2 = (pinToDelete == 0) ? 1 : 0;
-//			int offs = pinToOffsBitsLHC(pin2, getBitPosIndex(), dims);
-//			pos2 = Bits.readArray(node.ba, offs, IK_WIDTH(dims));
-//			val2 = values[pin2];
-//		}
-
 		
 		//This allows writing the result directly into 'ret'
 		NodeEntry<T> result = new NodeEntry<>(niBuffer, Node.SUBCODE_EMPTY, null);
