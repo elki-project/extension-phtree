@@ -39,7 +39,8 @@ import de.lmu.ifi.dbs.elki.utilities.documentation.Reference;
 import de.lmu.ifi.dbs.elki.utilities.optionhandling.AbstractParameterizer;
 
 /**
- * Implementation of an in-memory PH-tree.
+ * Implementation of an in-memory PH-tree. This version
+ * uses the previous version v8 of the PH-Tree.
  *
  * @author Tilmann Zaeschke, Erich Schubert
  *
@@ -49,12 +50,12 @@ import de.lmu.ifi.dbs.elki.utilities.optionhandling.AbstractParameterizer;
  * @param <O> Vector type
  */
 @Reference(authors = "T. Zaeschke, C. Zimmerli, M.C. Norrie", title = "The PH-Tree -- A Space-Efficient Storage Structure and Multi-Dimensional Index", booktitle = "Proc. Intl. Conf. on Management of Data (SIGMOD'14), 2014", url = "http://dx.doi.org/10.1145/361002.361007")
-public class MemoryPHTree<O extends NumberVector> extends AbstractIndex<O>
+public class MemoryPHTreeV8<O extends NumberVector> extends AbstractIndex<O>
     implements DynamicIndex,  KNNIndex<O>, RangeIndex<O> {
   /**
    * Class logger
    */
-  private static final Logging LOG = Logging.getLogger(MemoryPHTree.class);
+  private static final Logging LOG = Logging.getLogger(MemoryPHTreeV8.class);
 
   /**
    * Distance computations performed.
@@ -76,7 +77,7 @@ public class MemoryPHTree<O extends NumberVector> extends AbstractIndex<O>
    *
    * @param relation Relation to index
    */
-  public MemoryPHTree(Relation<O> relation) {
+  public MemoryPHTreeV8(Relation<O> relation) {
     super(relation);
     dims = RelationUtil.dimensionality(relation);
     //TODO
@@ -286,7 +287,7 @@ public class MemoryPHTree<O extends NumberVector> extends AbstractIndex<O>
    * @param <O> Vector type
    */
   @Alias({ "miniph", "ph" })
-  public static class Factory<O extends NumberVector> implements IndexFactory<O, MemoryPHTree<O>> {
+  public static class Factory<O extends NumberVector> implements IndexFactory<O, MemoryPHTreeV8<O>> {
     /**
      * Constructor. Trivial parameterizable.
      */
@@ -295,8 +296,8 @@ public class MemoryPHTree<O extends NumberVector> extends AbstractIndex<O>
     }
 
     @Override
-    public MemoryPHTree<O> instantiate(Relation<O> relation) {
-      return new MemoryPHTree<>(relation);
+    public MemoryPHTreeV8<O> instantiate(Relation<O> relation) {
+      return new MemoryPHTreeV8<>(relation);
     }
 
     @Override
@@ -306,8 +307,8 @@ public class MemoryPHTree<O extends NumberVector> extends AbstractIndex<O>
 
     public static class Parametrizer extends AbstractParameterizer {
       @Override
-      protected MemoryPHTree.Factory<NumberVector> makeInstance() {
-        return new MemoryPHTree.Factory<>();
+      protected MemoryPHTreeV8.Factory<NumberVector> makeInstance() {
+        return new MemoryPHTreeV8.Factory<>();
       }
     }
   }
