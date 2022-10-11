@@ -12,7 +12,7 @@
 
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-		<elki.version>0.7.1</elki.version>
+		<elki.version>0.8.0</elki.version>
 	</properties>
 
 	<licenses>
@@ -30,8 +30,8 @@
 				<version>3.0</version>
 				<configuration>
 					<useIncrementalCompilation>false</useIncrementalCompilation>
-					<source>1.7</source>
-					<target>1.7</target>
+					<source>1.8</source>
+					<target>1.8</target>
 					<debuglevel>source,lines</debuglevel>
 					<failOnError>true</failOnError>
 					<compilerArgument>-Xlint:all</compilerArgument>
@@ -51,7 +51,7 @@
 		</dependency>
 
 		<dependency>
-			<groupId>de.lmu.ifi.dbs.elki</groupId>
+			<groupId>io.github.elki-project</groupId>
 			<artifactId>elki</artifactId>
 			<version>${elki.version}</version>
 		</dependency>

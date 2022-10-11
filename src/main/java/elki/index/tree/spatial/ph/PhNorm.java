@@ -1,45 +1,40 @@
-package de.lmu.ifi.dbs.elki.index.tree.spatial.ph;
+package elki.index.tree.spatial.ph;
 
 import ch.ethz.globis.phtree.PhDistance;
 import ch.ethz.globis.phtree.pre.PreProcessorPointF;
-import de.lmu.ifi.dbs.elki.data.NumberVector;
-import de.lmu.ifi.dbs.elki.distance.distancefunction.Norm;
+import elki.distance.NumberVectorDistance;
 
 /**
  * PhDistance implementation that wraps around an ELKI distance.
  * 
  * @author Tilmann Zaeschke
- *
- * @param <O>
  */
-final class PhNorm<O extends NumberVector> implements PhDistance {
-
-  private final Norm<NumberVector> norm;
+final class PhNorm implements PhDistance {
+  private final NumberVectorDistance<?> norm;
   private final PreProcessorPointF pre;
   private final PhNumberVectorAdapter o1;
   private final PhNumberVectorAdapter o2;
   
   private long distanceCalcCount = 0;
   
-  PhNorm(Norm<O> norm, int dimensions, PreProcessorPointF pre) {
-    this.norm = (Norm<NumberVector>) norm;
+  PhNorm(NumberVectorDistance<?> norm, int dimensions, PreProcessorPointF pre) {
+    this.norm = norm;
     this.pre = pre;
     this.o1 = new PhNumberVectorAdapter(dimensions, pre);
     this.o2 = new PhNumberVectorAdapter(dimensions, pre);
   }
-  
+
   @Override
   public double dist(long[] v1, long[] v2) {
     distanceCalcCount++;
-    return norm.distance((NumberVector)o1.wrap(v1), (NumberVector)o2.wrap(v2));
+    return norm.distance(o1.wrap(v1), o2.wrap(v2));
   }
-  
+
   public long getAndResetDistanceCounter() {
     long x = distanceCalcCount;
     distanceCalcCount = 0;
     return x;
   }
-  
 
   @Override
   public void toMBB(double distance, long[] center, long[] outMin,
@@ -56,5 +51,4 @@ final class PhNorm<O extends NumberVector> implements PhDistance {
     pre.pre(min, outMin);
     pre.pre(max, outMax);
   }
-
 }

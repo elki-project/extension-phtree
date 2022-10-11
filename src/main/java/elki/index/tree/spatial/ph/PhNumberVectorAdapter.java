@@ -1,8 +1,7 @@
-package de.lmu.ifi.dbs.elki.index.tree.spatial.ph;
+package elki.index.tree.spatial.ph;
 
 import ch.ethz.globis.phtree.pre.PreProcessorPointF;
-import de.lmu.ifi.dbs.elki.data.NumberVector;
-import de.lmu.ifi.dbs.elki.math.linearalgebra.Vector;
+import elki.data.NumberVector;
 
 final class PhNumberVectorAdapter implements NumberVector {
   
@@ -52,8 +51,8 @@ final class PhNumberVectorAdapter implements NumberVector {
   }
 
   @Override
-  public Vector getColumnVector() {
-    return new Vector(min);
+  public double[] toArray() {
+    return min.clone();
   }
 
   @Override
